@@ -1,0 +1,100 @@
+/* Define CSS variables for light and dark modes */
+:root {
+  --background-color: white;
+  --text-color: black;
+  --sidebar-background-color: #f4f4f4;
+  --sidebar-text-color: black;
+  --sidebar-nav-text-color: black;
+  --logout-button-background-color: #ff4d4d;
+  --toggle-button-background-color: #ccc;
+}
+
+[data-theme="dark"] {
+  --background-color: black;
+  --text-color: white;
+  --sidebar-background-color: #333;
+  --sidebar-text-color: white;
+  --sidebar-nav-text-color: #ff6666; /* Light red color */
+  --logout-button-background-color: #ff4d4d;
+  --toggle-button-background-color: #555;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  height: 100vh;
+}
+
+.layout-container {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 200px;
+  background-color: var(--sidebar-background-color);
+  color: var(--sidebar-text-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  border-right: 1px solid #ccc;
+  position: relative;
+  transition: width 0.3s;
+}
+
+.sidebar-minimized .sidebar {
+  width: 50px;
+}
+
+.sidebar-content {
+  flex-grow: 1;
+}
+
+.sidebar-content h2 {
+  margin-top: 0;
+}
+
+.sidebar-content ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.sidebar-content ul li {
+  margin: 10px 0;
+}
+
+.sidebar-content ul li a {
+  color: var(--sidebar-nav-text-color);
+  text-decoration: none;
+}
+
+.sidebar-footer {
+  text-align: center;
+}
+
+.logout-button {
+  background-color: var(--logout-button-background-color);
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.toggle-button {
+  position: absolute;
+  top: 50%;
+  right: -15px;
+  transform: translateY(-50%);
+  background-color: var(--toggle-button-background-color);
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 20px;
+}

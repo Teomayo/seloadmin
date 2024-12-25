@@ -1,0 +1,16 @@
+FROM python:3.11.11
+
+WORKDIR /app
+
+COPY backend/requirements.txt /app/backend/requirements.txt
+RUN pip install -r /app/backend/requirements.txt
+
+COPY backend/ /app/backend/
+
+WORKDIR /app/backend
+ENV DJANGO_SETTINGS_MODULE=seloadmin.settings
+
+# Set PYTHONPATH to include the backend directory
+ENV PYTHONPATH="/app/backend:${PYTHONPATH}"
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
