@@ -10,6 +10,8 @@ services:
       - ./backend:/app/backend
     environment:
       - DEBUG=True  # Ensure Django debug mode is on for logging
+    env_file:
+      - .env
     tty: true
 
   frontend:
@@ -20,4 +22,6 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app/frontend
+    env_file:
+      - .env
     tty: true
