@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getQuestions, getChoices, voteForChoice } from "../../services/api";
-import "../../styles/QuestionsWidget.css";
+import "../../styles/widgets/QuestionsWidget.css";
 
 const QuestionsWidget: React.FC = () => {
   interface Question {
@@ -111,7 +111,7 @@ const QuestionsWidget: React.FC = () => {
   };
 
   return (
-    <div className="widget">
+    <div className="widget-regular">
       <h2>Questions</h2>
       {questions.length > 0 ? (
         currentQuestion && (

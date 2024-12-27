@@ -1,0 +1,15 @@
+.widget-small {
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+  width: 150px;
+}
+
+.members-widget h2 {
+  margin-top: 0;
+}
+
+.members-widget p {
+  font-size: 2em;
+  text-align: center;
+}

@@ -1,19 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "../styles/Layout.css";
 import { logout } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import Menu from "./Menu";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
   const username = localStorage.getItem("userName");
-  const toggleSidebar = () => {
-    setIsSidebarMinimized(!isSidebarMinimized);
+
+  const toggleSidebarVisibility = () => {
+    setIsSidebarVisible(!isSidebarVisible);
   };
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -21,13 +25,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     navigate("/login");
   };
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   return (
-    <div
-      className={`layout-container ${
-        isSidebarMinimized ? "sidebar-minimized" : ""
-      }`}
-    >
-      <div className="sidebar">
+    <div className="layout-container">
+      <div
+        className={`sidebar ${isSidebarVisible ? "visible" : ""}`}
+        id="sidebar"
+      >
         <div className="sidebar-content">
           <h2>Menu</h2>
           <ul>
@@ -46,11 +60,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <br />
           <small>Logged in as: {username}</small>
         </div>
-        <button className="toggle-button" onClick={toggleSidebar}>
-          {isSidebarMinimized ? ">" : "<"}
-        </button>
       </div>
-      <div className="main-content">{children}</div>
+      <div className="main-content">
+        {isMobileView && <Menu />}
+        {children}
+      </div>
     </div>
   );
 };

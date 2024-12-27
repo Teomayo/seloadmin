@@ -31,20 +31,26 @@ body {
 }
 
 .sidebar {
-  width: 200px;
+  display: block;
+  width: auto;
+  max-width: 250px; /* Adjust this value based on your longest word plus padding */
   background-color: var(--sidebar-background-color);
   color: var(--sidebar-text-color);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   padding: 20px;
   border-right: 1px solid #ccc;
   position: relative;
-  transition: width 0.3s;
+  transition: left 0.3s;
+  overflow-x: hidden;
 }
 
-.sidebar-minimized .sidebar {
-  width: 50px;
+.main-content {
+  margin-top: 0;
+}
+
+.sidebar.visible {
+  left: 0;
 }
 
 .sidebar-content {
@@ -82,19 +88,34 @@ body {
   border-radius: 5px;
 }
 
-.toggle-button {
-  position: absolute;
-  top: 50%;
-  right: -15px;
-  transform: translateY(-50%);
-  background-color: var(--toggle-button-background-color);
+.hamburger-menu {
+  display: none;
+  background: none;
   border: none;
-  padding: 5px;
+  font-size: 24px;
   cursor: pointer;
-  border-radius: 50%;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1001; /* Ensure it is on top of the sidebar */
 }
 
-.main-content {
-  flex-grow: 1;
-  padding: 20px;
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+    position: absolute;
+    left: -200px;
+    top: 0;
+    height: 100%;
+    z-index: 1000;
+    transition: left 0.3s;
+  }
+
+  .main-content {
+    margin-top: 60px; /* Ensure content is below the menu in mobile view */
+  }
+
+  .hamburger-menu {
+    display: block;
+  }
 }

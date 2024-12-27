@@ -1,24 +1,24 @@
-.widget {
+.widget-regular {
   border: 1px solid #ccc;
   padding: 20px;
   border-radius: 8px;
   width: 300px;
 }
 
-.widget h2 {
+.widget-regular h2 {
   margin-top: 0;
 }
 
-.widget ul {
+.widget-regular ul {
   list-style-type: none;
   padding: 0;
 }
 
-.widget ul li {
+.widget-regular ul li {
   margin: 10px 0;
 }
 
-.widget ul li button {
+.widget-regular ul li button {
   background-color: #007bff;
   color: white;
   border: none;
@@ -27,12 +27,12 @@
   border-radius: 5px;
 }
 
-.widget ul li button:disabled {
+.widget-regular ul li button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
 }
 
-.widget ul li button.greyed-out {
+.widget-regular ul li button.greyed-out {
   background-color: #ccc;
   cursor: not-allowed;
 }

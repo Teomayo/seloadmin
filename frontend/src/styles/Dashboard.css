@@ -1,74 +1,15 @@
 .dashboard-container {
-    display: flex;
-    height: 100vh;
-  }
-  
-  .sidebar {
-    width: 200px;
-    background-color: #f4f4f4;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 20px;
-    border-right: 1px solid #ccc;
-    position: relative;
-    transition: width 0.3s;
-  }
-  
-  .sidebar-minimized .sidebar {
-    width: 50px;
-  }
-  
-  .sidebar-content {
-    flex-grow: 1;
-  }
-  
-  .sidebar-content h2 {
-    margin-top: 0;
-  }
-  
-  .sidebar-content ul {
-    list-style-type: none;
-    padding: 0;
-  }
-  
-  .sidebar-content ul li {
-    margin: 10px 0;
-  }
-  
-  .sidebar-footer {
-    text-align: center;
-  }
-  
-  .logout-button {
-    background-color: #ff4d4d;
-    color: white;
-    border: none;
-    padding: 10px;
-    cursor: pointer;
-    border-radius: 5px;
-  }
-  
-  .toggle-button {
-    position: absolute;
-    top: 50%;
-    right: -15px;
-    transform: translateY(-50%);
-    background-color: #ccc;
-    border: none;
-    padding: 5px;
-    cursor: pointer;
-    border-radius: 50%;
-  }
-  
-  .dashboard {
-    flex-grow: 1;
-    padding: 20px;
-  }
-  
-  .widget {
-    border: 1px solid #ccc;
-    padding: 20px;
-    border-radius: 8px;
-    width: 300px;
-  }
+  display: flex;
+  height: 100vh;
+}
+
+.dashboard {
+  flex-grow: 1;
+  padding: 20px;
+}
+
+.widgets-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}

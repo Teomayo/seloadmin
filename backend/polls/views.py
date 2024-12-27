@@ -1,6 +1,7 @@
 from django.db.models import F
 from django.shortcuts import get_object_or_404
-from .models import Choice, Question, Vote
+from .models import Choice, Question
+from django.contrib.auth.models import User
 from django.views import generic
 from django.utils import timezone
 from rest_framework import viewsets
@@ -11,10 +12,13 @@ from rest_framework import status
 from .serializers import QuestionsSerializer, ChoiceSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import api_view
 
 
-
-
+@api_view(['GET'])
+def members_count(request):
+    count = User.objects.count()
+    return Response({'count': count})
 
 class IndexView(generic.ListView):
     context_object_name = "latest_question_list"

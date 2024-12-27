@@ -29,12 +29,13 @@ export const getChoices = async (questionId: number) => {
 };
 
 export const voteForChoice = async (choiceId: number) => {
-  const response = await axios.post(
-    `${API_URL}choices/${choiceId}/vote/`,
-    { choiceId },
-    getAuthHeaders()
-  );
+  const response = await axios.post(`${API_URL}/choices/${choiceId}/vote/`);
   return response;
+};
+
+export const getMembersCount = async () => {
+  const response = await axios.get(`${API_URL}members/count/`);
+  return response.data.count;
 };
 
 export const login = async (username: string, password: string) => {
@@ -52,6 +53,9 @@ export const login = async (username: string, password: string) => {
 };
 
 export const logout = async () => {
+  // small workaround for visual settings
+  const currentTheme: string = localStorage.getItem("theme") || "light";
   localStorage.clear();
+  localStorage.setItem("theme", currentTheme);
   window.location.href = "/login";
 };

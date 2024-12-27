@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from polls.views import QuestionViewSet, ChoicesViewSet 
+from polls.views import QuestionViewSet, ChoicesViewSet, members_count
 from rest_framework.authtoken.views import obtain_auth_token
 
 router = DefaultRouter()
@@ -28,6 +28,6 @@ urlpatterns = [
     path("", include("polls.urls")),
     path("admin/", admin.site.urls),
     path('api/', include(router.urls)),
-    # path('api/questions/votes/<str:username>/', QuestionViewSet.as_view({'get':'list'}), name='get_voted_questions'),
+    path('api/members/count/', members_count, name='members_count'),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
 ]
