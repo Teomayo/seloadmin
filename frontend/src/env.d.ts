@@ -1,4 +1,4 @@
-declare namespace NodeJS {
+declare global {
   interface ProcessEnv {
     API_URL: string;
     BASE_URL: string;
@@ -7,3 +7,4 @@ declare namespace NodeJS {
     // Add other environment variables here
   }
 }
+export {};

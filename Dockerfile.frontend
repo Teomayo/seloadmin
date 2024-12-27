@@ -5,8 +5,9 @@ WORKDIR /app
 COPY frontend/ ./
 RUN npm install
 RUN npm run build
+COPY .env frontend/src/.env
 
 # Serve the frontend build
 RUN npm install -g serve
 
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["serve", "-s", "dist/"]
