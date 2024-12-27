@@ -1,8 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import Dashboard from "./components/Dashboard.tsx";
-import Settings from "./components/Settings.tsx";
-import Login from "./components/Login.tsx";
+import Dashboard from "./components/Dashboard";
+import Settings from "./components/Settings";
+import Login from "./components/Login";
 import "./styles/App.css";
 
 const App: React.FC = () => {

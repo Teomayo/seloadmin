@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Layout from "./Layout.tsx";
+import Layout from "./Layout";
 import "../styles/Settings.css";
 
 const Settings: React.FC = () => {

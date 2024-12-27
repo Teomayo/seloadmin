@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { login, getQuestions } from "../services/api.ts";
+import { login, getQuestions } from "../services/api";
 import "../styles/Login.css";
 
 const Login: React.FC = () => {

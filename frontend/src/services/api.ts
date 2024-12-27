@@ -1,8 +1,10 @@
 import axios from "axios";
-import "dotenv/config";
 
 const API_URL = process.env.API_URL;
 const BASE_URL = process.env.BASE_URL;
+
+console.log("API_URL:", API_URL);
+console.log("BASE_URL:", BASE_URL);
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");

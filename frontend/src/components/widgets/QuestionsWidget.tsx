@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getQuestions, getChoices, voteForChoice } from "../../services/api.ts";
+import { getQuestions, getChoices, voteForChoice } from "../../services/api";
 import "../../styles/QuestionsWidget.css";
 
 const QuestionsWidget: React.FC = () => {
@@ -58,7 +58,7 @@ const QuestionsWidget: React.FC = () => {
       questions[currentQuestionIndex] &&
       questions[currentQuestionIndex].voted_users &&
       userName &&
-      questions[currentQuestionIndex].voted_users.includes(userName)
+      questions[currentQuestionIndex].voted_users?.includes(userName)
     ) {
       setHasVoted(true);
     } else {
@@ -104,6 +104,7 @@ const QuestionsWidget: React.FC = () => {
   };
 
   const getChoicesForCurrentQuestion = () => {
+    if (!currentQuestion) return [];
     return choices.filter(
       (choice: Choice) => choice.question === currentQuestion.id
     );
