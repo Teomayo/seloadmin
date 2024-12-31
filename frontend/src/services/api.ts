@@ -29,7 +29,7 @@ export const getChoices = async (questionId: number) => {
 };
 
 export const voteForChoice = async (choiceId: number) => {
-  const response = await axios.post(`${API_URL}/choices/${choiceId}/vote/`);
+  const response = await axios.post(`${API_URL}choices/${choiceId}/vote/`);
   return response;
 };
 
