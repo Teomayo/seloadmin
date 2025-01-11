@@ -1,16 +1,38 @@
-FROM python:3.11.11
+FROM golang:1.21-alpine
 
+# Set up root app directory first
 WORKDIR /app
 
-COPY backend/requirements.txt /app/backend/requirements.txt
-RUN pip install -r /app/backend/requirements.txt
+# Install build dependencies and Python
+RUN apk add --no-cache gcc musl-dev sqlite python3
 
-COPY backend/ /app/backend/
-COPY .env .env
+# Create necessary directories
+RUN mkdir -p /app/backend
+
+# Copy env file to root
+COPY .env ./
+
+# Copy the database file
+COPY db/poll.db ./poll.db
+COPY backend/ ./backend/
+
+# Copy the backend source code into backend directory
+
+# Switch to backend directory for backend-specific operations
 WORKDIR /app/backend
-ENV DJANGO_SETTINGS_MODULE=seloadmin.settings
 
-# Set PYTHONPATH to include the backend directory
-ENV PYTHONPATH="/app/backend:${PYTHONPATH}"
+# Set environment mode to production
+ENV ENV_MODE=production
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Build the application
+RUN go build -o main main.go
+
+# Create a startup script with improved checks
+RUN echo '#!/bin/sh' > /app/backend/start.sh && \
+    echo 'set -e' >> /app/backend/start.sh && \
+    echo 'cd /app' >> /app/backend/start.sh && \
+    echo 'exec backend/main' >> /app/backend/start.sh && \
+    chmod +x /app/backend/start.sh
+
+# Run the startup script
+CMD ["/app/backend/start.sh"]

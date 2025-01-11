@@ -1,23 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { getQuestions, getChoices, voteForChoice } from "../../services/api";
+import { getQuestions, voteForChoice } from "../../services/api";
 import "../../styles/widgets/QuestionsWidget.css";
 
+interface Choice {
+  id: number;
+  text: string;
+  votes: number;
+  question_id: number;
+}
+
+interface Question {
+  id: number;
+  text: string;
+  created_at: string;
+  choices: Choice[];
+  voted_users: string[];
+}
+
 const QuestionsWidget: React.FC = () => {
-  interface Question {
-    id: number;
-    question_text: string;
-    voted_users: string[] | null;
-  }
-
-  interface Choice {
-    id: number;
-    choice_text: string;
-    question: number;
-  }
-
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [choices, setChoices] = useState<Choice[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
   const userName = localStorage.getItem("userName");
 
@@ -30,10 +32,35 @@ const QuestionsWidget: React.FC = () => {
     const fetchQuestions = async () => {
       try {
         const result = await getQuestions();
-        const filteredQuestions = result.filter((question: Question) => {
-          return !votedQuestions.includes(question.id);
-        });
-        setQuestions(filteredQuestions);
+        console.log("Raw API response:", result);
+
+        if (Array.isArray(result)) {
+          const validQuestions = result.filter((question: Question) => {
+            console.log("Processing question:", question);
+            console.log("Question choices:", question.choices);
+
+            if (!question.choices || !Array.isArray(question.choices)) {
+              console.warn(`Question ${question.id} has no choices array`);
+              return false;
+            }
+
+            const hasInvalidChoices = question.choices.some((choice) => {
+              console.log("Checking choice:", choice);
+              return !choice.id;
+            });
+
+            if (hasInvalidChoices) {
+              console.warn(`Question ${question.id} has choices without IDs`);
+            }
+            return !hasInvalidChoices && !votedQuestions.includes(question.id);
+          });
+
+          console.log("Valid questions:", validQuestions);
+          setQuestions(validQuestions);
+        } else {
+          console.error("Expected array of questions, got:", typeof result);
+          setQuestions([]);
+        }
       } catch (error) {
         console.error("Error fetching questions:", error);
         setQuestions([]);
@@ -42,16 +69,6 @@ const QuestionsWidget: React.FC = () => {
 
     fetchQuestions();
   }, [votedQuestions]);
-
-  useEffect(() => {
-    if (questions.length > 0) {
-      const fetchChoices = async () => {
-        const result = await getChoices(questions[currentQuestionIndex].id);
-        setChoices(result);
-      };
-      fetchChoices();
-    }
-  }, [questions, currentQuestionIndex]);
 
   useEffect(() => {
     if (
@@ -103,28 +120,26 @@ const QuestionsWidget: React.FC = () => {
     }
   };
 
-  const getChoicesForCurrentQuestion = () => {
-    if (!currentQuestion) return [];
-    return choices.filter(
-      (choice: Choice) => choice.question === currentQuestion.id
-    );
-  };
-
   return (
     <div className="widget-regular">
       <h2>Questions</h2>
       {questions.length > 0 ? (
         currentQuestion && (
           <div>
-            <h3>{currentQuestion.question_text}</h3>
-            <ul>
-              {getChoicesForCurrentQuestion().map((choice: Choice) => (
-                <li key={choice.id}>
+            <h3>{currentQuestion.text}</h3>
+            <ul className="choices-list">
+              {currentQuestion.choices.map((choice: Choice, index: number) => (
+                <li
+                  key={`choice-${
+                    choice.id || `${currentQuestion.id}-${index}`
+                  }`}
+                >
                   <button
                     onClick={() => handleVote(choice.id)}
                     disabled={hasVoted}
+                    className="choice-button"
                   >
-                    {choice.choice_text}
+                    {choice.text}
                   </button>
                 </li>
               ))}
@@ -133,12 +148,14 @@ const QuestionsWidget: React.FC = () => {
               <button
                 onClick={handlePreviousQuestion}
                 disabled={currentQuestionIndex === 0}
+                className="nav-button"
               >
                 Previous
               </button>
               <button
                 onClick={handleNextQuestion}
                 disabled={currentQuestionIndex === questions.length - 1}
+                className="nav-button"
               >
                 Next
               </button>
