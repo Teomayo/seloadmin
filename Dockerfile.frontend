@@ -1,13 +1,22 @@
-FROM node:20.17.0
+FROM node:20-alpine
 
 WORKDIR /app
 
-COPY frontend/ ./
-RUN npm install
-RUN npm run build
-COPY .env frontend/src/.env
+# Copy package files
+COPY frontend/package*.json ./
+COPY .env ./
 
-# Serve the frontend build
+# Install dependencies
+RUN npm install
+
+# Copy the source code
+COPY frontend/ ./
+
+# Build the application
+RUN npm run build
+
+# Install serve to run the built application
 RUN npm install -g serve
 
-CMD ["serve", "-s", "dist/"]
+# Run the application
+CMD ["serve", "-s", "build", "-l", "3000"]

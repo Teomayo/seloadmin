@@ -1,10 +1,11 @@
 declare global {
-  interface ProcessEnv {
-    API_URL: string;
-    BASE_URL: string;
-    DJANGO_SECRET_KEY: string;
-    HOST_URL: string;
-    // Add other environment variables here
+  namespace NodeJS {
+    interface ProcessEnv {
+      REACT_APP_API_URL: string;
+      REACT_APP_BASE_URL: string;
+      NODE_ENV: "development" | "production";
+    }
   }
 }
+
 export {};

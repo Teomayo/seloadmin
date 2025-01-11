@@ -7,29 +7,32 @@ const Login: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
-  console.log(localStorage.getItem("theme"));
-
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
   const navigate = useNavigate();
-
-  function getVotedQuestionIds(username: string, questions: any[]) {
-    return questions
-      .filter((question) => question.voted_users.includes(username))
-      .map((question) => question.id);
-  }
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  function getVotedQuestionIds(username: string, questions: any[]) {
+    return questions
+      .filter((question) => question.voted_users?.includes(username))
+      .map((question) => question.id);
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+
     try {
       await login(username, password);
+
+      // Fetch questions after successful login
       const questions = await getQuestions();
       localStorage.setItem("questions", JSON.stringify(questions));
+
+      // Store voted questions in session storage
       const votedQuestionIds = getVotedQuestionIds(username, questions);
       sessionStorage.setItem(
         "votedQuestions",
@@ -48,26 +51,32 @@ const Login: React.FC = () => {
 
   return (
     <div className="login-container">
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username</label>
+      <form onSubmit={handleSubmit} className="login-form">
+        <h2>Login</h2>
+        {error && <div className="error-message">{error}</div>}
+        <div className="form-group">
+          <label htmlFor="username">Username:</label>
           <input
             type="text"
+            id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            required
           />
         </div>
-        <div>
-          <label>Password</label>
+        <div className="form-group">
+          <label htmlFor="password">Password:</label>
           <input
             type="password"
+            id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
-        {error && <p className="error">{error}</p>}
-        <button type="submit">Login</button>
+        <button type="submit" className="login-button">
+          Login
+        </button>
       </form>
       <div className="toggle-container">
         <label className="switch">

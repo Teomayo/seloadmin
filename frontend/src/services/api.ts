@@ -1,7 +1,11 @@
 import axios from "axios";
 
-const API_URL = process.env.API_URL;
-const BASE_URL = process.env.BASE_URL;
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8080/api/";
+const BASE_URL = process.env.REACT_APP_BASE_URL || "http://localhost:8080/";
+
+if (!API_URL || !BASE_URL) {
+  console.warn("Environment variables not properly loaded!");
+}
 
 console.log("API_URL:", API_URL);
 console.log("BASE_URL:", BASE_URL);
@@ -10,14 +14,34 @@ const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
   return {
     headers: {
-      Authorization: `Token ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   };
 };
 
+interface Question {
+  id: number;
+  text: string;
+  created_at: string;
+  choices: Choice[];
+}
+
+interface Choice {
+  id: number;
+  text: string;
+  votes: number;
+  question_id: number;
+}
+
 export const getQuestions = async () => {
-  const response = await axios.get(`${API_URL}questions/`, getAuthHeaders());
-  return response.data;
+  try {
+    const response = await axios.get(`${API_URL}questions/`, getAuthHeaders());
+    console.log("Questions API response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching questions:", error);
+    throw error;
+  }
 };
 
 export const getChoices = async (questionId: number) => {
@@ -29,7 +53,11 @@ export const getChoices = async (questionId: number) => {
 };
 
 export const voteForChoice = async (choiceId: number) => {
-  const response = await axios.post(`${API_URL}choices/${choiceId}/vote/`);
+  const response = await axios.post(
+    `${API_URL}choices/${choiceId}/vote/`,
+    {},
+    getAuthHeaders()
+  );
   return response;
 };
 
@@ -39,16 +67,19 @@ export const getMembersCount = async () => {
 };
 
 export const login = async (username: string, password: string) => {
-  const response = await axios.post(`${BASE_URL}api-token-auth/`, {
-    username,
-    password,
-  });
-  if (response.status !== 200) {
-    throw new Error("Invalid username or password");
-  } else {
+  try {
+    const response = await axios.post(`${BASE_URL}api-token-auth/`, {
+      username,
+      password,
+    });
+
+    // If we get here, the request was successful
     localStorage.setItem("token", response.data.token);
     localStorage.setItem("userName", username);
     return response.data;
+  } catch (error) {
+    console.error("Login error:", error);
+    throw new Error("Invalid username or password");
   }
 };
 

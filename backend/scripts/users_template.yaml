@@ -1,0 +1,10 @@
+# Copy this file to users.yaml and modify with real credentials
+users:
+  - username: admin
+    email: admin@example.com
+    password: changeme
+    first_name: Admin
+    last_name: User
+    is_active: true
+    is_staff: true
+    is_superuser: true

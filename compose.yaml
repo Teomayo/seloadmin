@@ -1,18 +1,18 @@
-
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app/backend
-    environment:
-      - DEBUG=True  # Ensure Django debug mode is on for logging
+      - "${SERVER_PORT}:${SERVER_PORT}"
     env_file:
       - .env
-    tty: true
+    volumes:
+      - ./db/poll.db:/app/poll.db:rw
+    networks:
+      - backend-network
+    environment:
+      - ENV_MODE=production
 
   frontend:
     build:
@@ -20,8 +20,13 @@ services:
       dockerfile: Dockerfile.frontend
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app/frontend
     env_file:
       - .env
-    tty: true
+    networks:
+      - backend-network
+    depends_on:
+      - backend
+
+networks:
+  backend-network:
+    driver: bridge

@@ -74,10 +74,11 @@ body {
 }
 
 .toggle-container {
+  margin-top: 20px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  margin-top: 20px;
+  justify-content: center;
+  gap: 10px;
 }
 
 .switch {
@@ -85,7 +86,6 @@ body {
   display: inline-block;
   width: 60px;
   height: 34px;
-  margin-right: 10px;
 }
 
 .switch input {
@@ -124,4 +124,9 @@ input:checked + .slider {
 
 input:checked + .slider:before {
   transform: translateX(26px);
+}
+
+.error-message {
+  color: var(--error-color);
+  margin-bottom: 15px;
 }
