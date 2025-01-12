@@ -90,4 +90,8 @@ venv.bak/
 # SQLite database
 poll.db
 backend/scripts/users.yaml
-db/
+
+# Upload script
+upload.sh
+install.sh
+.rsync-exclude
