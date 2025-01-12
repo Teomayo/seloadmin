@@ -11,6 +11,7 @@ RUN npm install
 
 # Copy the source code
 COPY frontend/ ./
+ENV BIBLE_API_KEY=${BIBLE_API_KEY}
 
 # Build the application
 RUN npm run build

@@ -1,26 +1,22 @@
 import React, { useState, useEffect } from "react";
 import "../../styles/widgets/OrthodoxWidget.css";
-import {
-  fetchBiblePassage,
-  formatReference,
-} from "../../services/orthodoxService";
-interface DailyReadings {
-  date: string;
-  feast?: string;
-  readings: {
-    epistle?: {
-      reference: string;
-      text: string;
-    };
-    gospel?: {
-      reference: string;
-      text: string;
-    };
-  };
+import { fetchDailyOrthodoxData } from "../../services/orthodoxService";
+
+interface FastingLevels {
+  [key: number]: string;
 }
 
+const fastingLevels: FastingLevels = {
+  0: "No Fast",
+  1: "Regular Fast (Abstain from meat but eggs and dairy are allowed)",
+  2: "Fish Allowed (Seafoods are the only animal product one may eat)",
+  3: "Oil and Alcohol (No animal products with the exception of invertebrate seafood)",
+  4: "Strict Fast (Vegan diet with no oil or alcohol)",
+  5: "Xerophagy (Uncooked raw vegan foods, bread can be an exception)",
+};
+
 const OrthodoxWidget: React.FC = () => {
-  const [dailyData, setDailyData] = useState<DailyReadings | null>(null);
+  const [dailyData, setDailyData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,27 +26,13 @@ const OrthodoxWidget: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
-        // TODO: These references should come from an Orthodox calendar API
-        // These are just examples for now
-        const [epistle, gospel] = await Promise.all([
-          fetchBiblePassage(formatReference("Ephesians 4:1-6")),
-          fetchBiblePassage(formatReference("John 17:1-13")),
-        ]);
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1; // Months are 0-based
+        const day = today.getDate();
 
-        setDailyData({
-          date: new Date().toISOString(),
-          feast: "Today's Feast", // This should also come from Orthodox calendar
-          readings: {
-            epistle: {
-              reference: epistle.reference,
-              text: epistle.text,
-            },
-            gospel: {
-              reference: gospel.reference,
-              text: gospel.text,
-            },
-          },
-        });
+        const data = await fetchDailyOrthodoxData(year, month, day);
+        setDailyData(data);
       } catch (error) {
         console.error("Error loading Orthodox readings:", error);
         setError("Failed to load daily readings");
@@ -75,29 +57,40 @@ const OrthodoxWidget: React.FC = () => {
       {dailyData && (
         <>
           <div className="feast-day">
-            {dailyData.feast && <h3>{dailyData.feast}</h3>}
+            <h3>{dailyData.summary_title}</h3>
+            <p>Fasting Level: {dailyData.fast_level}</p>
+            <p>{fastingLevels[dailyData.fast_level]}</p>{" "}
+            {/* Displaying the fasting level description */}
+            <p>{dailyData.fast_level_description}</p>
           </div>
 
+          {dailyData.saints && (
+            <div className="saints">
+              <h4>Saints of the Day</h4>
+              <ul>
+                {dailyData.saints.map((saint: any, index: number) => (
+                  <li key={index}>{saint}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="daily-readings">
             <h3>Today's Readings</h3>
-            {dailyData.readings.epistle && (
-              <div className="reading epistle">
-                <h4>Epistle</h4>
-                <p className="reference">
-                  {dailyData.readings.epistle.reference}
-                </p>
-                <p className="text">{dailyData.readings.epistle.text}</p>
-              </div>
-            )}
-            {dailyData.readings.gospel && (
-              <div className="reading gospel">
-                <h4>Gospel</h4>
-                <p className="reference">
-                  {dailyData.readings.gospel.reference}
-                </p>
-                <p className="text">{dailyData.readings.gospel.text}</p>
-              </div>
-            )}
+            {dailyData.readings &&
+              dailyData.readings.map((reading: any, index: number) => (
+                <div key={index} className="reading">
+                  <h4>{reading.book}</h4>
+                  <p className="reference">{reading.display}</p>
+                  {reading.passage.map((text: any, index: number) => (
+                    <div key={index} className="passage">
+                      <h5>
+                        {text.chapter}:{text.verse}
+                      </h5>
+                      <p className="text">{text.content}</p>
+                    </div>
+                  ))}
+                </div>
+              ))}
           </div>
         </>
       )}

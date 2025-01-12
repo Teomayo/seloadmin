@@ -1,4 +1,4 @@
-const BIBLE_API_KEY = process.env.REACT_APP_BIBLE_API_KEY;
+const BIBLE_API_KEY = process.env.BIBLE_API_KEY;
 const BIBLE_ID = "de4e12af7f28f599-02"; // This is the NKJV Bible ID
 const API_BASE_URL = "https://api.scripture.api.bible/v1";
 
@@ -205,5 +205,28 @@ export const formatReference = (reference: string): string => {
   } else {
     const [chapter, verse] = passage.split(":");
     return `${formattedBook}.${chapter}.${verse}`;
+  }
+};
+
+// Add a new function to fetch daily readings and saints
+export const fetchDailyOrthodoxData = async (
+  year: number,
+  month: number,
+  day: number
+): Promise<any> => {
+  try {
+    const response = await fetch(
+      `https://orthocal.info/api/julian/${year}/${month}/${day}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data; // Return the entire data object
+  } catch (error) {
+    console.error("Failed to fetch daily Orthodox data:", error);
+    throw error;
   }
 };
