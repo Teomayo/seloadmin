@@ -78,17 +78,6 @@ const Login: React.FC = () => {
           Login
         </button>
       </form>
-      <div className="toggle-container">
-        <label className="switch">
-          <input
-            type="checkbox"
-            onChange={toggleTheme}
-            checked={theme === "dark"}
-          />
-          <span className="slider"></span>
-        </label>
-        <span>{theme === "light" ? "Light Mode" : "Dark Mode"}</span>
-      </div>
     </div>
   );
 };

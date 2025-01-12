@@ -121,13 +121,13 @@ const QuestionsWidget: React.FC = () => {
   };
 
   return (
-    <div className="widget-regular">
+    <div className="questions-widget">
       <h2>Questions</h2>
       {questions.length > 0 ? (
         currentQuestion && (
-          <div>
-            <h3>{currentQuestion.text}</h3>
-            <ul className="choices-list">
+          <div className="questions-content">
+            <h3 className="question-title">{currentQuestion.text}</h3>
+            <ul className="options-list">
               {currentQuestion.choices.map((choice: Choice, index: number) => (
                 <li
                   key={`choice-${
@@ -137,7 +137,7 @@ const QuestionsWidget: React.FC = () => {
                   <button
                     onClick={() => handleVote(choice.id)}
                     disabled={hasVoted}
-                    className="choice-button"
+                    className="option-item"
                   >
                     {choice.text}
                   </button>
@@ -163,7 +163,7 @@ const QuestionsWidget: React.FC = () => {
           </div>
         )
       ) : (
-        <p>No more questions available.</p>
+        <p className="no-questions">No more questions available.</p>
       )}
     </div>
   );

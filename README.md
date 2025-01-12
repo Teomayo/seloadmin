@@ -89,9 +89,30 @@ The application will be available at:
 ### Environment Variables
 Create a `.env` file in the root directory:
 ```
+# Backend settings
+DB_PATH=/app/poll.db
+JWT_SECRET=
 SERVER_PORT=8080
-ENV_MODE=production # or development
+
+# Frontend settings
+SERVER_HOST=localhost
+FRONTEND_URL=http://localhost:3000
+REACT_APP_API_URL=http://localhost:8080/api/
+REACT_APP_BASE_URL=http://localhost:8080/
+REACT_APP_BIBLE_API_KEY=
+ENV_MODE=development
+
 ```
+## API Keys Setup
+
+### API.Bible
+This application uses API.Bible to fetch Orthodox calendar readings. To set up your API key:
+
+1. Visit [API.Bible's website](https://scripture.api.bible/)
+2. Click "Get API Key" or go to their [signup page](https://scripture.api.bible/signup)
+3. Create an account and verify your email
+4. Once logged in, create a new application to generate an API key
+5. Copy your API key
 
 ## Database Management
 - Development database location: `./poll.db`
