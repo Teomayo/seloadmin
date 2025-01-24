@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Menu as MenuIcon, LogOut as LogOutIcon } from "react-feather";
 import "../styles/Layout.css";
@@ -8,6 +8,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
   const username = localStorage.getItem("userName");
+  const userRole = localStorage.getItem("userRole");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,6 +63,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   >
                     Settings
                   </Link>
+                  <Link to="/members" onClick={() => setIsSidebarVisible(true)}>
+                    Members
+                  </Link>
+                  {userRole === "staff" || userRole === "superuser" ? (
+                    <Link to="/admin" onClick={() => setIsSidebarVisible(true)}>
+                      Admin
+                    </Link>
+                  ) : null}
                 </nav>
               </div>
             </div>
@@ -77,6 +87,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <li>
                 <Link to="/settings">Settings</Link>
               </li>
+              <li>
+                <Link to="/members">Members</Link>
+              </li>
+              {userRole === "staff" || userRole === "superuser" ? (
+                <li>
+                  <Link to="/admin">Admin</Link>
+                </li>
+              ) : null}
             </ul>
           </div>
           <div className="sidebar-footer">

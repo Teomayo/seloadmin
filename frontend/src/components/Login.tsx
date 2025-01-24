@@ -45,10 +45,6 @@ const Login: React.FC = () => {
     }
   };
 
-  const toggleTheme = () => {
-    setTheme(theme === "light" ? "dark" : "light");
-  };
-
   return (
     <div className="login-container">
       <form onSubmit={handleSubmit} className="login-form">

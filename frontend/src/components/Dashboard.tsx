@@ -55,9 +55,9 @@ const Dashboard: React.FC = () => {
     if (widgetSettings.orthodox)
       activeWidgets.push({ i: "orthodox", x: 0, y: 0, w: 4, h: 6 });
     if (widgetSettings.questions)
-      activeWidgets.push({ i: "questions", x: 4, y: 0, w: 4, h: 6 });
+      activeWidgets.push({ i: "questions", x: 4, y: 0, w: 4, h: 4 });
     if (widgetSettings.members)
-      activeWidgets.push({ i: "members", x: 8, y: 0, w: 4, h: 2 });
+      activeWidgets.push({ i: "members", x: 4, y: 3, w: 2, h: 2 });
     return { lg: activeWidgets };
   };
 
@@ -93,7 +93,7 @@ const Dashboard: React.FC = () => {
         breakpoints={{ lg: 1200 }}
         cols={{ lg: 12 }}
         rowHeight={100}
-        isDraggable={!isMobileView}
+        isDraggable={false} // Disable dragging for now. TODO: Enable this when we have a better way to handle dragging and voting.
         isResizable={!isMobileView}
         margin={[16, 16]}
       >

@@ -1,0 +1,100 @@
+.admin-container {
+  padding: 20px;
+}
+
+.admin-container h2 {
+  color: var(--accent-color); /* Accent color for headings */
+  margin-bottom: 1rem; /* Space below the heading */
+  font-size: 1.5rem; /* Slightly larger font for headings */
+  border-bottom: 2px solid var(--border-color); /* Border below heading */
+  padding-bottom: 0.5rem; /* Space below heading */
+}
+
+.custom-modal .modal-content {
+  background-color: var(--bg-primary); /* Use your theme's background color */
+  color: var(--text-primary); /* Use your theme's text color */
+  border-radius: 8px; /* Rounded corners for the modal */
+}
+
+.custom-modal .modal-header {
+  border-bottom: 1px solid var(--border-color); /* Border for header */
+}
+
+.custom-modal .modal-title {
+  color: var(--accent-color); /* Accent color for title */
+}
+
+.custom-modal .modal-body {
+  padding: 20px; /* Padding for the body */
+}
+
+.custom-modal .form-control,
+.custom-modal .form-select {
+  background-color: var(--input-background-color);
+  border: 1px solid var(--input-border-color);
+  border-radius: 4px;
+  padding: 8px 12px;
+  width: 100%;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.custom-modal .form-control:focus,
+.custom-modal .form-select:focus {
+  border-color: var(--bg-primary);
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+.option {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Select dropdown specific styling */
+.custom-modal .form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.25rem;
+}
+
+/* Ensure the modal is centered */
+.modal-dialog {
+  max-width: 600px; /* Optional: Set a max width for the modal */
+  margin: auto; /* Center the modal horizontally */
+}
+
+.admin-button {
+  background-color: var(--accent-color);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 10px 20px;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.admin-button:hover {
+  background-color: var(--accent-color);
+  color: var(--text-inverse);
+}
+
+.admin-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}
+
+.admin-button:hover {
+  opacity: 0.9;
+}

@@ -29,7 +29,7 @@ body {
   max-width: 400px;
   margin: 50px auto;
   padding: 20px;
-  border: 1px solid var(--input-border-color);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   background-color: var(--background-color);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -62,15 +62,16 @@ body {
 
 .login-container button {
   padding: 10px;
-  background-color: var(--button-background-color);
-  color: white;
+  background-color: var(--accent-color);
+  color: var(--text-inverse);
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
 
 .login-container button:hover {
-  background-color: var(--button-hover-background-color);
+  background-color: var(--accent-color);
+  color: var(--text-inverse);
 }
 
 input:checked + .slider {

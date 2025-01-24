@@ -42,7 +42,6 @@ func main() {
 
 	// Public routes
 	r.HandleFunc("/api-token-auth/", handlers.Login).Methods("POST", "OPTIONS")
-	r.HandleFunc("/api/members/count/", handlers.GetMembersCount).Methods("GET", "OPTIONS")
 
 	// Protected routes
 	api := r.PathPrefix("/api").Subrouter()
@@ -50,7 +49,15 @@ func main() {
 	api.HandleFunc("/questions/", handlers.GetQuestions).Methods("GET", "OPTIONS")
 	api.HandleFunc("/questions/{id}/choices/", handlers.GetChoices).Methods("GET", "OPTIONS")
 	api.HandleFunc("/choices/{id}/vote/", handlers.VoteForChoice).Methods("POST", "OPTIONS")
-
+	api.HandleFunc("/members/{username}/", handlers.UpdateMemberInfo).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/create-user/", handlers.CreateUser).Methods("POST", "OPTIONS")
+	api.HandleFunc("/delete-user/{username}/", handlers.DeleteUser).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/update-user/{username}/", handlers.UpdateUser).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/users/", handlers.GetUsers).Methods("GET", "OPTIONS")
+	api.HandleFunc("/members/count/", handlers.GetMembersCount).Methods("GET", "OPTIONS")
+	api.HandleFunc("/members/", handlers.GetMembersInfo).Methods("GET", "OPTIONS")
+	api.HandleFunc("/members/{username}/", handlers.GetMemberInfo).Methods("GET", "OPTIONS")
+	api.HandleFunc("/members/{username}/password/", handlers.UpdateMemberPassword).Methods("PUT", "OPTIONS")
 	// Get frontend URL from environment variable, default to localhost:3000
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {

@@ -1,6 +1,6 @@
 .orthodox-widget {
-  height: 100%;
-  padding: 1.5rem;
+  height: 95%;
+  padding: 1rem;
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
@@ -10,7 +10,7 @@
 .feast-day {
   border-bottom: 2px solid var(--border-color);
   margin-bottom: 1rem;
-  padding-bottom: 1rem;
+  padding-bottom: 0.25rem;
 }
 
 .feast-day h3 {

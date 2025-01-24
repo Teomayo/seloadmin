@@ -5,10 +5,12 @@ import Dashboard from "./components/Dashboard";
 import Settings from "./components/Settings";
 import Login from "./components/Login";
 import "./styles/theme.css";
+import Members from "./components/Members";
+import AdminPanel from "./components/AdminPanel";
 
 const App: React.FC = () => {
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") || "light";
+    const savedTheme = localStorage.getItem("theme") || "dark";
     document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 
@@ -44,6 +46,26 @@ const App: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <Settings />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/members"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Members />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AdminPanel />
             </Layout>
           </ProtectedRoute>
         }

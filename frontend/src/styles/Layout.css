@@ -53,6 +53,7 @@
 
 .logout-button:hover {
   opacity: 0.9;
+  background-color: var(--accent-color);
 }
 
 /* Main Content */

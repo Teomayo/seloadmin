@@ -1,3 +1,17 @@
+"""
+This script is used to remove a row from a database table.
+
+Usage: python remove_row.py <table_name> <row_id>
+
+Example: python remove_row.py users 1
+
+Available tables:
+- users
+- questions
+- choices
+
+"""
+
 import sqlite3
 import sys
 import os

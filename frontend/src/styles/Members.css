@@ -1,0 +1,113 @@
+.members-container {
+  padding: 1rem; /* Match padding with other widgets */
+  background-color: var(--bg-secondary); /* Consistent background color */
+  color: var(--text-primary); /* Consistent text color */
+}
+
+.members-container h2 {
+  color: var(--accent-color); /* Accent color for headings */
+  margin-bottom: 1rem; /* Space below the heading */
+  font-size: 1.5rem; /* Slightly larger font for headings */
+  border-bottom: 2px solid var(--border-color); /* Border below heading */
+  padding-bottom: 0.5rem; /* Space below heading */
+}
+
+.members-container a {
+  color: var(--link-color);
+}
+
+.members-container input {
+  margin-bottom: 1rem; /* Space below the search input */
+  padding: 0.5rem; /* Consistent padding */
+  width: 100%;
+  max-width: 400px; /* Limit width for better appearance */
+  border: 1px solid var(--border-color); /* Border for input */
+  border-radius: 4px; /* Rounded corners */
+  color: var(--text-primary); /* Text color */
+  background-color: var(--bg-primary); /* Background color */
+}
+
+.members-container table {
+  width: 100%;
+  border-collapse: collapse; /* Collapse borders for a cleaner look */
+  margin-top: 1rem; /* Space above the table */
+}
+
+.members-container th,
+.members-container td {
+  padding: 0.75rem; /* Consistent padding */
+  text-align: left; /* Align text to the left */
+  border: 1px solid var(--border-color); /* Light gray border */
+}
+
+.members-container th {
+  background-color: var(--bg-primary); /* Background color for headers */
+  color: var(--text-primary); /* Text color for headers */
+  font-weight: bold; /* Bold text for headers */
+}
+
+.members-container tbody tr:nth-child(even) {
+  background-color: var(--bg-secondary); /* Light background for even rows */
+}
+
+.members-container tbody tr:hover {
+  background-color: var(--accent-color); /* Highlight row on hover */
+  color: var(--text-inverse); /* Change text color on hover */
+}
+
+@media (max-width: 768px) {
+  .members-container table {
+    font-size: 14px; /* Adjust font size for smaller screens */
+  }
+}
+
+.member-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  cursor: pointer;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.member-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.dropdown-arrow {
+  font-size: 0.8rem;
+  transition: transform 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.dropdown-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.member-card {
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.member-details {
+  padding: 1rem;
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
+}
+
+.member-details p {
+  margin: 0.5rem 0;
+}
+
+.member-details a {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+.member-details a:hover {
+  text-decoration: underline;
+}

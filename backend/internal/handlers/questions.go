@@ -66,7 +66,7 @@ func GetQuestions(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	log.Printf("Sending response: %+v", response)
+	// log.Printf("Sending response: %+v", response)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -144,15 +144,4 @@ func VoteForChoice(w http.ResponseWriter, r *http.Request) {
 	tx.Commit()
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func GetMembersCount(w http.ResponseWriter, r *http.Request) {
-	var count int64
-	result := database.DB.Model(&models.User{}).Count(&count)
-	if result.Error != nil {
-		http.Error(w, "Error counting members", http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(map[string]int64{"count": count})
 }

@@ -1,6 +1,6 @@
 .members-widget {
-  height: 100%;
-  padding: 1.5rem;
+  height: 70%; /* Set height to 50% of the parent */
+  padding: 1rem; /* Keep padding consistent */
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
@@ -11,7 +11,7 @@
   margin: 0 0 1rem 0;
   font-size: 1.2rem;
   border-bottom: 2px solid var(--border-color);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
 }
 
 .members-content {
@@ -37,4 +37,19 @@
 .member-count .label {
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .members-table {
+    font-size: 14px; /* Smaller font size for mobile */
+  }
+
+  .members-table th,
+  .members-table td {
+    padding: 8px; /* Reduce padding */
+  }
+
+  .members-card {
+    margin: 10px; /* Add margin for spacing */
+  }
 }

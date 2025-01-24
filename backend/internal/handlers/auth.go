@@ -24,7 +24,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token string `json:"token"`
+	Token    string `json:"token"`
+	UserRole string `json:"user_role"`
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -44,8 +45,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
-
-	log.Printf("Found user: %+v", user)
 
 	if !user.CheckPassword(req.Password) {
 		log.Printf("Password check failed for user: %s", req.Username)
@@ -67,5 +66,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(LoginResponse{Token: tokenString})
+	var userRole string
+	if user.IsSuperuser {
+		userRole = "superuser"
+	} else if user.IsStaff {
+		userRole = "staff"
+	} else {
+		userRole = "user"
+	}
+
+	json.NewEncoder(w).Encode(LoginResponse{Token: tokenString, UserRole: userRole})
 }
