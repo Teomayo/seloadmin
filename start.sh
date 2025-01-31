@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Kill any existing processes on the required ports
-./kill_ports.sh
+./utils/kill_ports.sh
 
 # Start backend server in the background
 echo "Starting backend server..."

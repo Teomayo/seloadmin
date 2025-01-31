@@ -26,21 +26,29 @@ const Login: React.FC = () => {
     setError("");
 
     try {
-      await login(username, password);
+      const loginResponse = await login(username, password);
+      console.log("Login successful:", loginResponse);
 
-      // Fetch questions after successful login
-      const questions = await getQuestions();
-      localStorage.setItem("questions", JSON.stringify(questions));
+      try {
+        // Fetch questions after successful login
+        const questions = await getQuestions();
+        console.log("Questions fetched successfully:", questions);
+        localStorage.setItem("questions", JSON.stringify(questions));
 
-      // Store voted questions in session storage
-      const votedQuestionIds = getVotedQuestionIds(username, questions);
-      sessionStorage.setItem(
-        "votedQuestions",
-        JSON.stringify(votedQuestionIds)
-      );
+        // Store voted questions in session storage
+        const votedQuestionIds = getVotedQuestionIds(username, questions);
+        sessionStorage.setItem(
+          "votedQuestions",
+          JSON.stringify(votedQuestionIds)
+        );
 
-      navigate("/");
+        navigate("/");
+      } catch (err) {
+        console.error("Error after successful login:", err);
+        setError("Error loading data after login");
+      }
     } catch (err) {
+      console.error("Login error:", err);
       setError("Invalid username or password");
     }
   };

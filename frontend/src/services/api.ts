@@ -20,20 +20,6 @@ const getAuthHeaders = () => {
   };
 };
 
-interface Question {
-  id: number;
-  text: string;
-  created_at: string;
-  choices: Choice[];
-}
-
-interface Choice {
-  id: number;
-  text: string;
-  votes: number;
-  question_id: number;
-}
-
 export const createUser = async (userData: {
   username: string;
   email: string;
@@ -100,26 +86,37 @@ export const getMembersCount = async () => {
 
 export const login = async (username: string, password: string) => {
   try {
+    console.log("Sending login request to:", `${BASE_URL}api-token-auth/`);
     const response = await axios.post(`${BASE_URL}api-token-auth/`, {
       username,
       password,
     });
-    console.log("Login response:", response.data);
 
-    // If we get here, the request was successful
+    console.log("Full response:", {
+      status: response.status,
+      headers: response.headers,
+      data: response.data,
+    });
+
+    if (!response.data.token) {
+      console.error("No token received in response");
+      throw new Error("No authentication token received");
+    }
+
+    // Store the token and user info
     localStorage.setItem("token", response.data.token);
     localStorage.setItem("userName", username);
-    if (response.data.user_role === "superuser") {
-      localStorage.setItem("userRole", "superuser");
-    } else if (response.data.user_role === "staff") {
-      localStorage.setItem("userRole", "staff");
-    } else {
-      localStorage.setItem("userRole", "user");
-    }
+    localStorage.setItem("userRole", response.data.user_role || "user");
+
     return response.data;
-  } catch (error) {
-    console.error("Login error:", error);
-    throw new Error("Invalid username or password");
+  } catch (error: any) {
+    console.error("Login error details:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers,
+    });
+    throw error;
   }
 };
 

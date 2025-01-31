@@ -14,6 +14,7 @@ kill_port() {
 
 # Kill processes on ports 3000 and 8080
 kill_port 3000
+kill_port 3001
 kill_port 8080
 
 echo "Done checking ports"

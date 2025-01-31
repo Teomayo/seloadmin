@@ -131,7 +131,6 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-	log.Printf("Received user data: %+v", newUser)
 
 	// Save the user to the database
 	log.Printf("Creating user: %+v", newUser)
