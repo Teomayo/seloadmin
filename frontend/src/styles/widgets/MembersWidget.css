@@ -1,15 +1,55 @@
-.widget-small {
-  border: 1px solid #ccc;
-  padding: 20px;
-  border-radius: 8px;
-  width: 150px;
+.members-widget {
+  height: 70%; /* Set height to 50% of the parent */
+  padding: 1rem; /* Keep padding consistent */
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
 }
 
-.members-widget h2 {
-  margin-top: 0;
+.members-widget h3 {
+  color: var(--accent-color);
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0.25rem;
 }
 
-.members-widget p {
-  font-size: 2em;
+.members-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.member-count {
   text-align: center;
+}
+
+.member-count .count {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--accent-color);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.member-count .label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .members-table {
+    font-size: 14px; /* Smaller font size for mobile */
+  }
+
+  .members-table th,
+  .members-table td {
+    padding: 8px; /* Reduce padding */
+  }
+
+  .members-card {
+    margin: 10px; /* Add margin for spacing */
+  }
 }

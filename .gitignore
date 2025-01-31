@@ -20,6 +20,7 @@ connect.sh
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
 
 npm-debug.log*
 yarn-debug.log*
@@ -90,4 +91,8 @@ venv.bak/
 # SQLite database
 poll.db
 backend/scripts/users.yaml
-db/
+
+# Upload script
+upload.sh
+install.sh
+.rsync-exclude

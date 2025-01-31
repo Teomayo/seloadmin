@@ -17,6 +17,10 @@ interface Question {
   voted_users: string[];
 }
 
+const stopPropogation = (event: React.MouseEvent<HTMLButtonElement>) => {
+  event.stopPropagation();
+};
+
 const QuestionsWidget: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -36,16 +40,12 @@ const QuestionsWidget: React.FC = () => {
 
         if (Array.isArray(result)) {
           const validQuestions = result.filter((question: Question) => {
-            console.log("Processing question:", question);
-            console.log("Question choices:", question.choices);
-
             if (!question.choices || !Array.isArray(question.choices)) {
               console.warn(`Question ${question.id} has no choices array`);
               return false;
             }
 
             const hasInvalidChoices = question.choices.some((choice) => {
-              console.log("Checking choice:", choice);
               return !choice.id;
             });
 
@@ -55,7 +55,6 @@ const QuestionsWidget: React.FC = () => {
             return !hasInvalidChoices && !votedQuestions.includes(question.id);
           });
 
-          console.log("Valid questions:", validQuestions);
           setQuestions(validQuestions);
         } else {
           console.error("Expected array of questions, got:", typeof result);
@@ -85,7 +84,11 @@ const QuestionsWidget: React.FC = () => {
 
   const currentQuestion = questions[currentQuestionIndex];
 
-  const handleVote = async (choiceId: number) => {
+  const handleVote = async (
+    choiceId: number,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    stopPropogation(event);
     if (hasVoted) return;
     const response = await voteForChoice(choiceId);
     if (response.status === 200) {
@@ -108,26 +111,30 @@ const QuestionsWidget: React.FC = () => {
     }
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = (event: React.MouseEvent<HTMLButtonElement>) => {
+    stopPropogation(event);
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
-  const handlePreviousQuestion = () => {
+  const handlePreviousQuestion = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    stopPropogation(event);
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
 
   return (
-    <div className="widget-regular">
+    <div className="questions-widget">
       <h2>Questions</h2>
       {questions.length > 0 ? (
         currentQuestion && (
-          <div>
-            <h3>{currentQuestion.text}</h3>
-            <ul className="choices-list">
+          <div className="questions-content">
+            <h3 className="question-title">{currentQuestion.text}</h3>
+            <ul className="options-list">
               {currentQuestion.choices.map((choice: Choice, index: number) => (
                 <li
                   key={`choice-${
@@ -135,9 +142,9 @@ const QuestionsWidget: React.FC = () => {
                   }`}
                 >
                   <button
-                    onClick={() => handleVote(choice.id)}
+                    onClick={(event) => handleVote(choice.id, event)}
                     disabled={hasVoted}
-                    className="choice-button"
+                    className="option-item"
                   >
                     {choice.text}
                   </button>
@@ -146,14 +153,14 @@ const QuestionsWidget: React.FC = () => {
             </ul>
             <div className="navigation-buttons">
               <button
-                onClick={handlePreviousQuestion}
+                onClick={(event) => handlePreviousQuestion(event)}
                 disabled={currentQuestionIndex === 0}
                 className="nav-button"
               >
                 Previous
               </button>
               <button
-                onClick={handleNextQuestion}
+                onClick={(event) => handleNextQuestion(event)}
                 disabled={currentQuestionIndex === questions.length - 1}
                 className="nav-button"
               >
@@ -163,7 +170,7 @@ const QuestionsWidget: React.FC = () => {
           </div>
         )
       ) : (
-        <p>No more questions available.</p>
+        <p className="no-questions">No more questions available.</p>
       )}
     </div>
   );

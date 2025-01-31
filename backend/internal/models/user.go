@@ -19,8 +19,48 @@ type User struct {
 	IsActive    bool `gorm:"default:true"`
 	IsStaff     bool `gorm:"default:false"`
 	IsSuperuser bool `gorm:"default:false"`
+	Position    string
+	PhoneNumber string
+	Occupation  string
+	Paid        bool
 	LastLogin   time.Time
 	DateJoined  time.Time `gorm:"default:CURRENT_TIMESTAMP"`
+}
+
+type UpdateUserInfo struct {
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	Occupation  *string `json:"occupation,omitempty"`
+}
+
+type UpdateUserInfoAdmin struct {
+	Username    *string `json:"username,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	Occupation  *string `json:"occupation,omitempty"`
+	Position    *string `json:"position,omitempty"`
+	IsActive    *bool   `json:"is_active,omitempty"`
+	IsStaff     *bool   `json:"is_staff,omitempty"`
+	IsSuperuser *bool   `json:"is_superuser,omitempty"`
+	Password    *string `json:"password,omitempty"`
+	FirstName   *string `json:"first_name,omitempty"`
+	LastName    *string `json:"last_name,omitempty"`
+}
+
+type MemberResponse struct {
+	ID          uint   `json:"id"`
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	Email       string `json:"email"`
+	Position    string `json:"position"`
+	PhoneNumber string `json:"phone_number"`
+	Occupation  string `json:"occupation"`
+	Paid        bool   `json:"paid"`
+}
+
+type UpdatePassword struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
 }
 
 // BeforeCreate is a GORM hook that's called before creating a new user

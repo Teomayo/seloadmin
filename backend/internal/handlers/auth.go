@@ -24,10 +24,19 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token string `json:"token"`
+	Token    string `json:"token"`
+	UserRole string `json:"user_role"`
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers if needed
+	w.Header().Set("Access-Control-Allow-Origin", "*") // Or your specific origin
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	// Set content type BEFORE writing any response
+	w.Header().Set("Content-Type", "application/json")
+
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Error decoding request: %v", err)
@@ -45,15 +54,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Found user: %+v", user)
+	passwordValid := user.CheckPassword(req.Password)
+	log.Printf("Password check result for user %s: %v", req.Username, passwordValid)
 
-	if !user.CheckPassword(req.Password) {
+	if !passwordValid {
 		log.Printf("Password check failed for user: %s", req.Username)
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// Create JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":  user.ID,
 		"username": user.Username,
@@ -67,5 +76,22 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(LoginResponse{Token: tokenString})
+	var userRole string
+	if user.IsSuperuser {
+		userRole = "superuser"
+	} else if user.IsStaff {
+		userRole = "staff"
+	} else {
+		userRole = "user"
+	}
+
+	w.WriteHeader(http.StatusOK)
+	response := LoginResponse{Token: tokenString, UserRole: userRole}
+	log.Printf("Sending successful login response for user %s with role %s", req.Username, userRole)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }

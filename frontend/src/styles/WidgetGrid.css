@@ -1,0 +1,44 @@
+.widget-grid {
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.widget-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: auto;
+}
+
+/* Mobile styles */
+.widget-grid-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+/* Drag handle styles */
+.react-grid-item.react-draggable-dragging {
+  cursor: move;
+  z-index: 100;
+}
+
+/* Custom scrollbar for widgets */
+.widget-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.widget-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.widget-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.widget-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

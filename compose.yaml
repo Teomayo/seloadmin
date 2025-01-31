@@ -13,6 +13,9 @@ services:
       - backend-network
     environment:
       - ENV_MODE=production
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - FRONTEND_URL=http://localhost:3000
 
   frontend:
     build:

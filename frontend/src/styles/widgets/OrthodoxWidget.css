@@ -1,0 +1,91 @@
+.orthodox-widget {
+  height: 95%;
+  padding: 1rem;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.feast-day {
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 1rem;
+  padding-bottom: 0.25rem;
+}
+
+.feast-day h3 {
+  color: var(--accent-color);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+}
+
+.feast-day p {
+  color: #555;
+  font-style: italic;
+  margin: 0;
+}
+
+.daily-readings h3 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  margin: 1rem 0;
+}
+
+.reading {
+  margin-bottom: 1.5rem;
+}
+
+.reading h4 {
+  color: var(--accent-color);
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.reading .reference {
+  color: var(--text-secondary);
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.reading .text {
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Loading state */
+.orthodox-widget.loading {
+  text-align: center;
+  color: #666;
+  padding: 2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .orthodox-widget {
+    padding: 1rem;
+    margin: 0.5rem 0;
+    height: auto;
+    max-height: none;
+  }
+
+  .feast-day h3 {
+    font-size: 1.1rem;
+  }
+
+  .reading .text {
+    font-size: 0.9rem;
+  }
+}
+
+.daily-readings {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.daily-readings::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}

@@ -12,11 +12,19 @@
   padding: 20px;
 }
 
-.settings h1 {
+.settings-container h1 {
   margin-bottom: 20px;
 }
 
-.settings label {
+.settings-container p {
+  color: var(--text-primary);
+}
+
+.settings-container a {
+  color: var(--accent-color);
+}
+
+.settings-container label {
   display: flex;
   align-items: center;
 }
@@ -65,4 +73,211 @@
 
 .settings input:checked + .slider:before {
   transform: translateX(26px);
+}
+
+.settings-container {
+  padding: 2rem;
+  height: 100%;
+  background-color: var(--bg-secondary);
+}
+
+.settings-card {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px var(--shadow-color);
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-card h2 {
+  color: var(--text-primary);
+  margin-top: 0;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 1rem;
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+}
+
+.settings-section h3 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+  justify-content: space-between;
+}
+
+.setting-label {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+/* Toggle Switch Styles */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  width: auto;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+  background-color: var(--bg-secondary);
+  border-radius: 34px;
+  transition: 0.4s;
+  margin-left: 1rem;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: var(--bg-primary);
+  border-radius: 50%;
+  transition: 0.4s;
+}
+
+input:checked + .slider {
+  background-color: var(--accent-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="password"],
+input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--input-border-color);
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+  background-color: var(--input-background-color);
+  color: var(--text-color);
+  width: 100%;
+  width: -moz-available; /* WebKit-based browsers will ignore this. */
+  width: -webkit-fill-available; /* Mozilla-based browsers will ignore this. */
+  width: fill-available;
+}
+
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus {
+  border-color: var(--input-focus-color);
+  outline: none;
+  width: 100%;
+  width: -moz-available; /* WebKit-based browsers will ignore this. */
+  width: -webkit-fill-available; /* Mozilla-based browsers will ignore this. */
+  width: fill-available;
+}
+
+.settings-container button {
+  background-color: var(--accent-color);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: 4px;
+  padding: 10px 15px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+.settings-container button:hover {
+  background-color: var(--accent-color);
+  transform: scale(1.05);
+}
+
+.settings-container button:disabled {
+  background-color: var(--accent-color);
+  cursor: not-allowed;
+}
+
+.settings-container .button-container {
+  display: flex;
+  gap: 1rem;
+}
+
+.settings-container .toggle-switch {
+  display: flex;
+  align-items: center;
+}
+
+.settings-container .toggle-switch input {
+  margin-right: 10px;
+}
+/* Responsive styles */
+@media (max-width: 768px) {
+  .settings-container.mobile {
+    padding: 0.5rem;
+    height: calc(100vh - 64px); /* Account for mobile header */
+    margin-top: 64px; /* Add top margin for mobile header */
+  }
+
+  .settings-card {
+    padding: 1rem;
+    height: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+}
+
+.password-change-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.password-fields {
+  margin-bottom: 1rem;
+}
+
+.password-fields p {
+  margin-bottom: 0.5rem;
+}
+
+.password-fields label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.password-fields input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.password-fields input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
 }

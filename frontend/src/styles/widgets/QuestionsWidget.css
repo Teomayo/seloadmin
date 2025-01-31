@@ -1,58 +1,85 @@
-.widget-regular {
-  border: 1px solid #ccc;
-  padding: 20px;
-  border-radius: 8px;
-  width: 300px;
+.questions-widget {
+  height: 90%; /* Set height to 50% of the parent */
+  padding: 1rem; /* Keep padding consistent */
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Allow scrolling if content overflows */
 }
 
-.widget-regular h2 {
-  margin-top: 0;
+.questions-widget h2 {
+  color: var(--accent-color);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0.25rem;
+  flex-shrink: 0;
 }
 
-.widget-regular ul {
-  list-style-type: none;
+.questions-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.question-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem; /* Reduced from 1rem */
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.options-list {
+  list-style: none;
   padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem; /* Consistent small gap */
 }
 
-.widget-regular ul li {
-  margin: 10px 0;
+.options-list li {
+  margin: 0; /* Removed margin */
 }
 
-.widget-regular ul li button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 10px;
+.option-item {
+  width: 100%;
+  padding: 0.5rem 0.75rem; /* Reduced padding */
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
   cursor: pointer;
-  border-radius: 5px;
+  transition: transform 0.2s ease;
+  font-size: 0.9rem; /* Slightly smaller font */
+  text-align: left;
+  z-index: 101;
 }
 
-.widget-regular ul li button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.widget-regular ul li button.greyed-out {
-  background-color: #ccc;
-  cursor: not-allowed;
+.option-item:hover {
+  background-color: var(--accent-color); /* Highlight row on hover */
+  color: var(--text-inverse); /* Change text color on hover */
 }
 
 .navigation-buttons {
   display: flex;
+  gap: 0.5rem;
   justify-content: space-between;
-  margin-top: 20px;
+  margin-top: 0.25rem;
+  flex-shrink: 0;
 }
 
-.navigation-buttons button {
-  background-color: #007bff;
-  color: white;
+.nav-button {
+  padding: 0.4rem 0.75rem; /* Reduced padding */
   border: none;
-  padding: 10px;
+  border-radius: 4px;
+  background-color: var(--accent-color);
+  color: var(--text-inverse);
   cursor: pointer;
-  border-radius: 5px;
-}
-
-.navigation-buttons button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+  transition: opacity 0.2s;
+  min-width: 80px; /* Reduced from 100px */
+  font-size: 0.9rem; /* Slightly smaller font */
+  z-index: 101;
 }

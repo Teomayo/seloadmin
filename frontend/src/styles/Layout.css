@@ -1,121 +1,174 @@
-/* Define CSS variables for light and dark modes */
-:root {
-  --background-color: white;
-  --text-color: black;
-  --sidebar-background-color: #f4f4f4;
-  --sidebar-text-color: black;
-  --sidebar-nav-text-color: black;
-  --logout-button-background-color: #ff4d4d;
-  --toggle-button-background-color: #ccc;
-}
-
-[data-theme="dark"] {
-  --background-color: black;
-  --text-color: white;
-  --sidebar-background-color: #333;
-  --sidebar-text-color: white;
-  --sidebar-nav-text-color: #ff6666; /* Light red color */
-  --logout-button-background-color: #ff4d4d;
-  --toggle-button-background-color: #555;
-}
-
-body {
-  background-color: var(--background-color);
-  color: var(--text-color);
-  height: 100vh;
-}
-
+/* Base Layout */
 .layout-container {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
+  width: 100%;
 }
 
+/* Sidebar - Desktop */
 .sidebar {
-  display: block;
-  width: auto;
-  max-width: 250px; /* Adjust this value based on your longest word plus padding */
-  background-color: var(--sidebar-background-color);
-  color: var(--sidebar-text-color);
+  width: 250px;
+  background-color: var(--bg-sidebar);
+  color: var(--text-inverse);
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  border-right: 1px solid #ccc;
-  position: relative;
-  transition: left 0.3s;
-  overflow-x: hidden;
-}
-
-.main-content {
-  margin-top: 0;
-}
-
-.sidebar.visible {
-  left: 0;
-}
-
-.sidebar-content {
-  flex-grow: 1;
+  justify-content: space-between;
 }
 
 .sidebar-content h2 {
-  margin-top: 0;
+  margin-bottom: 1rem;
 }
 
 .sidebar-content ul {
-  list-style-type: none;
+  list-style: none;
   padding: 0;
 }
 
-.sidebar-content ul li {
-  margin: 10px 0;
+.sidebar-content a {
+  color: var(--text-inverse);
+  text-decoration: none;
+  display: block;
+  padding: 0.5rem 0;
 }
 
-.sidebar-content ul li a {
-  color: var(--sidebar-nav-text-color);
-  text-decoration: none;
+.sidebar-content a:hover {
+  background-color: var(--hover-color);
 }
 
 .sidebar-footer {
-  text-align: center;
+  margin-top: auto;
 }
 
 .logout-button {
-  background-color: var(--logout-button-background-color);
-  color: white;
+  width: 100%;
+  padding: 8px 16px;
+  background-color: var(--accent-color);
+  color: var(--text-inverse);
   border: none;
-  padding: 10px;
+  border-radius: 4px;
   cursor: pointer;
-  border-radius: 5px;
+  margin-bottom: 0.5rem;
 }
 
-.hamburger-menu {
-  display: none;
+.logout-button:hover {
+  opacity: 0.9;
+  background-color: var(--accent-color);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  overflow: hidden;
+  background-color: var(--bg-secondary);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile Header */
+.mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background-color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  box-shadow: 0 1px 3px var(--shadow-color);
+  z-index: 1000;
+}
+
+.mobile-menu-button,
+.mobile-logout-button {
   background: none;
   border: none;
-  font-size: 24px;
+  color: var(--text-primary);
+  padding: 0.5rem;
   cursor: pointer;
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 1001; /* Ensure it is on top of the sidebar */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+.mobile-title {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Mobile Sidebar */
+.mobile-sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1100;
+  display: flex;
+}
+
+.mobile-sidebar {
+  width: 256px;
+  background-color: var(--bg-primary);
+  height: 100%;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+}
+
+.mobile-sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.mobile-nav a {
+  color: var(--text-primary);
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+}
+
+.mobile-nav a:hover {
+  background-color: var(--hover-color);
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Responsive Adjustments */
 @media (max-width: 768px) {
+  .layout-container {
+    flex-direction: column;
+  }
+
   .sidebar {
     display: none;
-    position: absolute;
-    left: -200px;
-    top: 0;
-    height: 100%;
-    z-index: 1000;
-    transition: left 0.3s;
   }
 
   .main-content {
-    margin-top: 60px; /* Ensure content is below the menu in mobile view */
+    margin-left: 0;
   }
 
-  .hamburger-menu {
-    display: block;
+  .main-content.mobile {
+    padding-top: 64px;
   }
 }

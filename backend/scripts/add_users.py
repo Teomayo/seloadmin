@@ -5,7 +5,7 @@ import yaml
 from datetime import datetime
 
 def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(10)).decode('utf-8')
 
 def add_users():
     # Get the directory where the script is located
@@ -45,11 +45,13 @@ def add_users():
         try:
             cursor.execute('''
                 INSERT INTO users (username, email, password, first_name, last_name, 
-                                 is_active, is_staff, is_superuser, date_joined, last_login)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                 is_active, is_staff, is_superuser, date_joined, last_login,
+                                 position, phone_number, occupation, paid)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (user['username'], user['email'], hashed_password, user['first_name'], 
                  user['last_name'], user['is_active'], user['is_staff'], 
-                 user['is_superuser'], now, now))
+                 user['is_superuser'], now, now, user['position'], user['phone_number'], 
+                 user['occupation'], user['paid']))
             print(f"Added user: {user['username']}")
         except sqlite3.IntegrityError as e:
             print(f"Skipping user {user['username']}: {e}")

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"selo/config"
 	"selo/internal/database"
 	"selo/internal/handlers"
@@ -41,7 +42,6 @@ func main() {
 
 	// Public routes
 	r.HandleFunc("/api-token-auth/", handlers.Login).Methods("POST", "OPTIONS")
-	r.HandleFunc("/api/members/count/", handlers.GetMembersCount).Methods("GET", "OPTIONS")
 
 	// Protected routes
 	api := r.PathPrefix("/api").Subrouter()
@@ -49,10 +49,24 @@ func main() {
 	api.HandleFunc("/questions/", handlers.GetQuestions).Methods("GET", "OPTIONS")
 	api.HandleFunc("/questions/{id}/choices/", handlers.GetChoices).Methods("GET", "OPTIONS")
 	api.HandleFunc("/choices/{id}/vote/", handlers.VoteForChoice).Methods("POST", "OPTIONS")
+	api.HandleFunc("/members/{username}/", handlers.UpdateMemberInfo).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/create-user/", handlers.CreateUser).Methods("POST", "OPTIONS")
+	api.HandleFunc("/delete-user/{username}/", handlers.DeleteUser).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/update-user/{username}/", handlers.UpdateUser).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/users/", handlers.GetUsers).Methods("GET", "OPTIONS")
+	api.HandleFunc("/members/count/", handlers.GetMembersCount).Methods("GET", "OPTIONS")
+	api.HandleFunc("/members/", handlers.GetMembersInfo).Methods("GET", "OPTIONS")
+	api.HandleFunc("/members/{username}/", handlers.GetMemberInfo).Methods("GET", "OPTIONS")
+	api.HandleFunc("/members/{username}/password/", handlers.UpdateMemberPassword).Methods("PUT", "OPTIONS")
+	// Get frontend URL from environment variable, default to localhost:3000
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:3000"
+	}
 
 	// Setup CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedOrigins:   []string{frontendURL, "http://localhost:3001"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -61,8 +75,22 @@ func main() {
 	// Wrap router with CORS middleware
 	handler := c.Handler(r)
 
+	// Get host from environment variable, default to localhost
+	host := os.Getenv("SERVER_HOST")
+	if host == "" {
+		host = "localhost" // fallback default
+	}
+
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "8080" // fallback default
+	}
+
+	address := fmt.Sprintf("%s:%s", host, port)
+
 	// Start server
-	serverAddr := fmt.Sprintf(":%s", config.ServerPort)
-	log.Printf("Server starting on port %s", config.ServerPort)
-	log.Fatal(http.ListenAndServe(serverAddr, handler))
+	log.Printf("Server starting on %s", address)
+	if err := http.ListenAndServe(address, handler); err != nil {
+		log.Fatal(err)
+	}
 }

@@ -1,15 +1,70 @@
-.dashboard-container {
-  display: flex;
-  height: 100vh;
-}
-
 .dashboard {
-  flex-grow: 1;
-  padding: 20px;
+  flex: 1;
+  padding: 16px;
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  background-color: var(--bg-secondary);
 }
 
-.widgets-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+.dashboard-mobile {
+  flex: 1;
+  padding: 16px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: auto;
+  background-color: var(--bg-secondary);
+}
+
+.widget-container {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px var(--shadow-color);
+  overflow: auto;
+  height: 100%;
+  color: var(--text-primary);
+}
+
+.widget-wrapper {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px var(--shadow-color);
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+/* Custom scrollbar */
+.widget-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.widget-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.widget-container::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  border-radius: 4px;
+}
+
+.widget-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-primary);
+}
+
+/* Drag handle styles */
+.react-grid-item.react-draggable-dragging {
+  cursor: move;
+  z-index: 100;
+}
+
+/* Add these new styles */
+.layout .react-grid-layout {
+  height: 100% !important;
+}
+
+.layout {
+  height: 100%;
 }
