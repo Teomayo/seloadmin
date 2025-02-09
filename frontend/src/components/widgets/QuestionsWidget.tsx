@@ -36,7 +36,6 @@ const QuestionsWidget: React.FC = () => {
     const fetchQuestions = async () => {
       try {
         const result = await getQuestions();
-        console.log("Raw API response:", result);
 
         if (Array.isArray(result)) {
           const validQuestions = result.filter((question: Question) => {

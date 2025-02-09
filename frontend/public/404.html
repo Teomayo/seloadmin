@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found | Selo Admin</title>
+    <link rel="icon" href="favicon.ico" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 600px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            width: 150px;
+            height: auto;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+                margin: 1rem;
+            }
+
+            .logo {
+                width: 120px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="selo-logo.png" alt="Selo Logo" class="logo">
+        <h1>404 - Page Not Found</h1>
+        <p>Oops! The page you're looking for doesn't exist. You might have followed a broken link or entered an incorrect URL.</p>
+        <a href="/dashboard" class="button">Return to Dashboard</a>
+    </div>
+
+    <script>
+        // Check if user is logged in before showing the dashboard button
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            const button = document.querySelector('.button');
+            
+            if (!token) {
+                button.href = '/login';
+                button.textContent = 'Go to Login';
+            }
+        };
+    </script>
+</body>
+</html> 

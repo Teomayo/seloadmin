@@ -32,7 +32,6 @@ const Login: React.FC = () => {
       try {
         // Fetch questions after successful login
         const questions = await getQuestions();
-        console.log("Questions fetched successfully:", questions);
         localStorage.setItem("questions", JSON.stringify(questions));
 
         // Store voted questions in session storage

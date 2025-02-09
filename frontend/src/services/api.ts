@@ -118,12 +118,6 @@ export const login = async (username: string, password: string) => {
       }
     );
 
-    console.log("Full response:", {
-      status: response.status,
-      headers: response.headers,
-      data: response.data,
-    });
-
     if (!response.data.token) {
       console.error("No token received in response");
       throw new Error("No authentication token received");
@@ -136,12 +130,14 @@ export const login = async (username: string, password: string) => {
 
     return response.data;
   } catch (error: any) {
-    console.error("Login error details:", {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      headers: error.response?.headers,
-    });
+    if (process.env.REACT_APP_ENV_MODE === "development") {
+      console.error("Login error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers,
+      });
+    }
     throw error;
   }
 };
