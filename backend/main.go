@@ -59,38 +59,79 @@ func main() {
 	api.HandleFunc("/members/{username}/", handlers.GetMemberInfo).Methods("GET", "OPTIONS")
 	api.HandleFunc("/members/{username}/password/", handlers.UpdateMemberPassword).Methods("PUT", "OPTIONS")
 	// Get frontend URL from environment variable, default to localhost:3000
-	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		frontendURL = "http://localhost:3000"
+
+	var frontendURL string
+	var cypressURL string
+	if os.Getenv("ENV_MODE") == "production" {
+		frontendURL = os.Getenv("REACT_APP_PROD_FRONTEND_URL")
+	} else {
+		frontendURL = os.Getenv("REACT_APP_DEV_FRONTEND_URL")
+		cypressURL = os.Getenv("REACT_APP_DEV_CYPRESS_URL")
 	}
 
 	// Setup CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{frontendURL, "http://localhost:3001"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowedOrigins: []string{"*"}, // Temporarily allow all origins for testing
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{
+			"Content-Type",
+			"Authorization",
+			"Accept",
+			"Origin",
+			"X-Requested-With",
+			"Access-Control-Allow-Origin",
+			"Access-Control-Allow-Headers",
+		},
+		ExposedHeaders:   []string{"Content-Length"},
 		AllowCredentials: true,
+		Debug:            true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	})
 
-	// Wrap router with CORS middleware
-	handler := c.Handler(r)
+	// Create the base handler with CORS
+	baseHandler := c.Handler(r)
+
+	// Add logging and recovery middleware
+	finalHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("Panic recovered: %v", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+			}
+		}()
+
+		// Log incoming request
+		log.Printf(
+			"Incoming %s request to %s from %s",
+			r.Method,
+			r.URL.Path,
+			r.RemoteAddr,
+		)
+
+		baseHandler.ServeHTTP(w, r)
+	})
 
 	// Get host from environment variable, default to localhost
-	host := os.Getenv("SERVER_HOST")
-	if host == "" {
-		host = "localhost" // fallback default
+	var host string
+	if os.Getenv("ENV_MODE") == "production" {
+		host = os.Getenv("SERVER_HOST")
+	} else {
+		host = "0.0.0.0" // fallback default
 	}
 
-	port := os.Getenv("SERVER_PORT")
-	if port == "" {
+	var port string
+	if os.Getenv("ENV_MODE") == "production" {
+		port = os.Getenv("SERVER_PORT")
+	} else {
 		port = "8080" // fallback default
 	}
 
 	address := fmt.Sprintf("%s:%s", host, port)
 
-	// Start server
+	// Start server with detailed logging
 	log.Printf("Server starting on %s", address)
-	if err := http.ListenAndServe(address, handler); err != nil {
+	log.Printf("CORS allowed origins: %v", []string{frontendURL, cypressURL})
+	if err := http.ListenAndServe(address, finalHandler); err != nil {
 		log.Fatal(err)
 	}
 }

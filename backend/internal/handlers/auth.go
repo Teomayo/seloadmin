@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"selo/config"
 	"selo/internal/database"
 	"selo/internal/models"
@@ -29,36 +31,61 @@ type LoginResponse struct {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	// Set CORS headers if needed
-	w.Header().Set("Access-Control-Allow-Origin", "*") // Or your specific origin
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	log.Printf("Received login request from: %s", r.RemoteAddr)
 
-	// Set content type BEFORE writing any response
-	w.Header().Set("Content-Type", "application/json")
-
-	var req LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding request: %v", err)
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Check if DB is initialized
+	if database.DB == nil {
+		log.Printf("ERROR: Database connection is nil!")
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Login attempt for username: %s", req.Username)
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Handle preflight
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Read the entire request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error reading request body: %v", err)
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	// Parse the JSON
+	var creds LoginRequest
+	err = json.Unmarshal(body, &creds)
+	if err != nil {
+		log.Printf("Error parsing JSON: %v", err)
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Processing login for user: %s", creds.Username)
 
 	var user models.User
-	result := database.DB.Where("username = ?", req.Username).First(&user)
+	result := database.DB.Debug().Where("username = ?", creds.Username).First(&user)
 	if result.Error != nil {
 		log.Printf("Database error finding user: %v", result.Error)
+		// Log the SQL query that was executed
+		log.Printf("SQL Query: %v", result.Statement.SQL.String())
+		// Log the current working directory
+		pwd, _ := os.Getwd()
+		log.Printf("Current working directory: %s", pwd)
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	passwordValid := user.CheckPassword(req.Password)
-	log.Printf("Password check result for user %s: %v", req.Username, passwordValid)
+	passwordValid := user.CheckPassword(creds.Password)
+	log.Printf("Password check result for user %s: %v", creds.Username, passwordValid)
 
 	if !passwordValid {
-		log.Printf("Password check failed for user: %s", req.Username)
+		log.Printf("Password check failed for user: %s", creds.Username)
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
@@ -87,7 +114,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	response := LoginResponse{Token: tokenString, UserRole: userRole}
-	log.Printf("Sending successful login response for user %s with role %s", req.Username, userRole)
+	log.Printf("Sending successful login response for user %s with role %s", creds.Username, userRole)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("Error encoding response: %v", err)

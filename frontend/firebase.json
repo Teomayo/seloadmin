@@ -1,0 +1,18 @@
+{
+  "hosting": {
+    "site": "selo-admin",
+    "public": "build",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+  },
+  "rewrites": [
+    {
+      "source": "/selo-admin",
+      "destination": "build/index.html",
+      "run": {
+        "serviceId": "selo-admin",
+        "region": "us-central1",
+        "pinTag": true
+      }
+    }
+  ]
+}

@@ -20,6 +20,10 @@ func LoadConfig() (*Config, error) {
 	env := os.Getenv("GO_ENV")
 	if env == "" {
 		env = "development"
+	} else if env == "production" {
+		env = "production"
+	} else {
+		return nil, fmt.Errorf("invalid environment mode: %s", env)
 	}
 
 	// Try to load from different possible locations

@@ -21,8 +21,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
 
   const handleLogout = () => {
-    logout();
-    navigate("/login");
+    try {
+      logout();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   return (

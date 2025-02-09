@@ -1,13 +1,30 @@
 import axios from "axios";
 import { User } from "../interfaces";
 
-const API_URL = process.env.API_URL || "http://localhost:8080/api/";
-const BASE_URL = process.env.BASE_URL || "http://localhost:8080/";
+let API_URL: string;
+let BASE_URL: string;
+
+if (process.env.REACT_APP_ENV_MODE === "development") {
+  API_URL =
+    `${process.env.REACT_APP_DEV_BACKEND_URL}api/` ||
+    "http://host.docker.internal:8080/api/";
+  BASE_URL =
+    process.env.REACT_APP_DEV_BACKEND_URL ||
+    "http://host.docker.internal:8080/";
+} else {
+  API_URL =
+    `${process.env.REACT_APP_PROD_BACKEND_URL}api/` ||
+    "https://selo-admin-1060694023655.us-central1.run.app/api/";
+  BASE_URL =
+    process.env.REACT_APP_PROD_BACKEND_URL ||
+    "https://selo-admin-1060694023655.us-central1.run.app/";
+}
 
 if (!API_URL || !BASE_URL) {
   console.warn("Environment variables not properly loaded!");
 }
 
+console.log("Environment Mode:", process.env.REACT_APP_ENV_MODE);
 console.log("API_URL:", API_URL);
 console.log("BASE_URL:", BASE_URL);
 
@@ -87,10 +104,19 @@ export const getMembersCount = async () => {
 export const login = async (username: string, password: string) => {
   try {
     console.log("Sending login request to:", `${BASE_URL}api-token-auth/`);
-    const response = await axios.post(`${BASE_URL}api-token-auth/`, {
-      username,
-      password,
-    });
+    const response = await axios.post(
+      `${BASE_URL}api-token-auth/`,
+      {
+        username,
+        password,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
+    );
 
     console.log("Full response:", {
       status: response.status,
@@ -166,7 +192,12 @@ export const logout = async () => {
   // small workaround for visual settings
   const currentTheme: string = localStorage.getItem("theme") || "light";
   localStorage.setItem("theme", currentTheme);
-  window.location.href = "/login";
+  localStorage.removeItem("token");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userRole");
+
+  // Instead, use React Router's navigate
+  return "/login"; // Let the component handle navigation
 };
 
 export const getUsers = async (): Promise<User[]> => {
