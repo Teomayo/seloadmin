@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_superuser == true;
+    }
+    
+    function isStaff() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_staff == true;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || isOwner(userId);
+      allow delete: if isAdmin();
+      
+      // Validate user data
+      function isValidUser() {
+        let user = request.resource.data;
+        return user.email is string &&
+               user.email.matches('^[^@]+@[^@]+\\.[^@]+$') &&
+               user.first_name is string &&
+               user.last_name is string &&
+               user.is_active is bool &&
+               user.is_staff is bool &&
+               user.is_superuser is bool &&
+               (user.phone_number == null || user.phone_number is string) &&
+               (user.occupation == null || user.occupation is string) &&
+               (user.position == null || user.position is string) &&
+               user.paid is bool;
+      }
+    }
+    
+    // Questions collection
+    match /questions/{questionId} {
+      allow read: if isAuthenticated();
+      allow create: if isStaff() || isAdmin();
+      allow update: if isStaff() || isAdmin();
+      allow delete: if isAdmin();
+      
+      // Validate question data
+      function isValidQuestion() {
+        let question = request.resource.data;
+        return question.text is string &&
+               question.text.size() > 0 &&
+               question.created_at is timestamp &&
+               question.choices is list &&
+               question.choices.size() > 1 &&
+               question.voted_users is list;
+      }
+      
+      // Validate vote operation
+      function isValidVote() {
+        let oldData = resource.data;
+        let newData = request.resource.data;
+        let user = request.auth.uid;
+        
+        // Check if user hasn't voted before
+        return !oldData.voted_users.hasAny([user]) &&
+               newData.voted_users.hasAll(oldData.voted_users) &&
+               newData.voted_users.hasAll([user]) &&
+               newData.voted_users.size() == oldData.voted_users.size() + 1;
+      }
+    }
+  }
+} 

@@ -2,42 +2,55 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
+	"selo/internal/firebase"
 	"strings"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
-// Define custom type for context key
+// UserContextKey is the key used to store the Firebase token in the request context
 type contextKey string
 
 const UserContextKey contextKey = "user"
 
+// AuthMiddleware now implements mux.MiddlewareFunc
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get token from Authorization header
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			next.ServeHTTP(w, r)
 			return
 		}
 
-		// Remove "Bearer " prefix
-		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
+		// Get the Authorization header
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			log.Printf("No Authorization header")
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 
-		// Parse and validate token
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return []byte("your-secret-key"), nil
-		})
+		// Check if the header starts with "Bearer "
+		idToken := strings.TrimPrefix(authHeader, "Bearer ")
+		if idToken == authHeader {
+			log.Printf("Authorization header doesn't start with Bearer")
+			http.Error(w, "Invalid authorization format", http.StatusUnauthorized)
+			return
+		}
 
-		if err != nil || !token.Valid {
+		// Verify the Firebase token
+		token, err := firebase.Auth.VerifyIDToken(context.Background(), idToken)
+		if err != nil {
+			log.Printf("Error verifying token: %v", err)
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
 
-		// Add claims to request context
-		claims := token.Claims.(jwt.MapClaims)
-		ctx := context.WithValue(r.Context(), UserContextKey, claims)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		// Add the verified token claims to the request context
+		ctx := context.WithValue(r.Context(), "user", token)
+		r = r.WithContext(ctx)
+
+		log.Printf("Successfully authenticated user: %s", token.UID)
+		next.ServeHTTP(w, r)
 	})
 }

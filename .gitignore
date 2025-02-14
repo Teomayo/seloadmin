@@ -96,3 +96,5 @@ backend/scripts/users.yaml
 upload.sh
 install.sh
 .rsync-exclude
+
+*-service-account.json

@@ -1,17 +1,17 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"selo/config"
-	"selo/internal/database"
+	"selo/internal/firebase"
+	"selo/internal/middleware"
 	"selo/internal/models"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	"firebase.google.com/go/v4/auth"
 )
 
 var cfg *config.Config
@@ -21,7 +21,7 @@ func Init(config *config.Config) {
 }
 
 type LoginRequest struct {
-	Username string `json:"username"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
@@ -31,78 +31,55 @@ type LoginResponse struct {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Received login request from: %s", r.RemoteAddr)
+	log.Printf("Incoming %s request to %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
 
-	// Check if DB is initialized
-	if database.DB == nil {
-		log.Printf("ERROR: Database connection is nil!")
-		http.Error(w, "Database connection error", http.StatusInternalServerError)
-		return
-	}
-
-	// Set response headers
+	// Set content type for the actual response
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	// Handle preflight
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	// Read the entire request body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		log.Printf("Error reading request body: %v", err)
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
-		return
-	}
-	// Parse the JSON
 	var creds LoginRequest
-	err = json.Unmarshal(body, &creds)
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+		log.Printf("Error decoding request body: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Processing login for email: %s", creds.Email)
+
+	// Add timeout context
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	log.Printf("Attempting to verify user in Firebase Auth...")
+	// Verify the user exists in Firebase Auth
+	userRecord, err := firebase.Auth.GetUserByEmail(ctx, creds.Email)
 	if err != nil {
-		log.Printf("Error parsing JSON: %v", err)
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		log.Printf("Error finding user in Firebase Auth: %v", err)
+		http.Error(w, "Authentication failed", http.StatusUnauthorized)
 		return
 	}
+	log.Printf("User found in Firebase Auth: %s", userRecord.UID)
 
-	log.Printf("Processing login for user: %s", creds.Username)
-
-	var user models.User
-	result := database.DB.Debug().Where("username = ?", creds.Username).First(&user)
-	if result.Error != nil {
-		log.Printf("Database error finding user: %v", result.Error)
-		// Log the SQL query that was executed
-		log.Printf("SQL Query: %v", result.Statement.SQL.String())
-		// Log the current working directory
-		pwd, _ := os.Getwd()
-		log.Printf("Current working directory: %s", pwd)
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		return
-	}
-
-	passwordValid := user.CheckPassword(creds.Password)
-	log.Printf("Password check result for user %s: %v", creds.Username, passwordValid)
-
-	if !passwordValid {
-		log.Printf("Password check failed for user: %s", creds.Username)
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		return
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id":  user.ID,
-		"username": user.Username,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
-	})
-
-	tokenString, err := token.SignedString([]byte("your-secret-key"))
+	// Get user from Firestore to determine role
+	log.Printf("Fetching user data from Firestore...")
+	user, err := models.GetUserByEmail(creds.Email)
 	if err != nil {
-		log.Printf("Error generating token: %v", err)
-		http.Error(w, "Error generating token", http.StatusInternalServerError)
+		log.Printf("Error fetching user data from Firestore: %v", err)
+		http.Error(w, "Error fetching user data", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("User data fetched from Firestore")
 
+	// Create a custom token for the user
+	log.Printf("Creating custom token...")
+	token, err := firebase.Auth.CustomToken(ctx, user.UID)
+	if err != nil {
+		log.Printf("Error creating custom token: %v", err)
+		http.Error(w, "Error creating authentication token", http.StatusInternalServerError)
+		return
+	}
+	log.Printf("Custom token created successfully")
+
+	// Determine user role
 	var userRole string
 	if user.IsSuperuser {
 		userRole = "superuser"
@@ -112,13 +89,73 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		userRole = "user"
 	}
 
-	w.WriteHeader(http.StatusOK)
-	response := LoginResponse{Token: tokenString, UserRole: userRole}
-	log.Printf("Sending successful login response for user %s with role %s", creds.Username, userRole)
+	// Send response
+	response := LoginResponse{
+		Token:    token,
+		UserRole: userRole,
+	}
+
+	log.Printf("Login successful for user: %s with role: %s", creds.Email, userRole)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("Error encoding response: %v", err)
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}
+}
+
+type SignUpRequest struct {
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
+func SignUp(w http.ResponseWriter, r *http.Request) {
+	var req SignUpRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Create the user in Firebase Auth
+	params := (&auth.UserToCreate{}).
+		Email(req.Email).
+		Password(req.Password).
+		DisplayName(req.FirstName + " " + req.LastName)
+
+	authUser, err := firebase.Auth.CreateUser(r.Context(), params)
+	if err != nil {
+		http.Error(w, "Error creating user: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Create the user record in Firestore
+	user := &models.User{
+		Email:     req.Email,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+	}
+
+	err = models.CreateUserRecord(authUser, user)
+	if err != nil {
+		http.Error(w, "Error creating user record: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	// Get the user ID from the context (set by AuthMiddleware)
+	token := r.Context().Value(middleware.UserContextKey).(*auth.Token)
+	uid := token.UID
+
+	user, err := models.GetUserByUID(uid)
+	if err != nil {
+		http.Error(w, "Error fetching user profile", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(user)
 }

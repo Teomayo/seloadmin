@@ -26,28 +26,18 @@ const Login: React.FC = () => {
     setError("");
 
     try {
-      const loginResponse = await login(username, password);
-      console.log("Login successful:", loginResponse);
-
-      try {
-        // Fetch questions after successful login
-        const questions = await getQuestions();
-        localStorage.setItem("questions", JSON.stringify(questions));
-
-        // Store voted questions in session storage
-        const votedQuestionIds = getVotedQuestionIds(username, questions);
-        sessionStorage.setItem(
-          "votedQuestions",
-          JSON.stringify(votedQuestionIds)
-        );
-
-        navigate("/");
-      } catch (err) {
-        console.error("Error after successful login:", err);
-        setError("Error loading data after login");
+      const result = await login(username, password);
+      if (result.isAuthenticated) {
+        // Redirect based on user role
+        const userRole = result.user_role;
+        if (userRole === "superuser" || userRole === "staff") {
+          navigate("/dashboard"); // or wherever your admin dashboard is
+        } else {
+          navigate("/home"); // or wherever regular users should go
+        }
       }
-    } catch (err) {
-      console.error("Login error:", err);
+    } catch (error) {
+      console.error("Login failed:", error);
       setError("Invalid username or password");
     }
   };

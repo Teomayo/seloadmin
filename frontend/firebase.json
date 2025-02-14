@@ -14,5 +14,17 @@
         "pinTag": true
       }
     }
-  ]
+  ],
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8000
+    },
+    "ui": {
+      "port": 4000,
+      "enabled": true
+    }
+  }
 }

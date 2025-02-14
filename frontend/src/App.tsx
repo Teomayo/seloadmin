@@ -16,7 +16,7 @@ const App: React.FC = () => {
 
   // Check if user is authenticated
   const isAuthenticated = () => {
-    return localStorage.getItem("token") !== null;
+    return localStorage.getItem("isAuthenticated") === "true";
   };
 
   // Protected Route wrapper
@@ -30,8 +30,9 @@ const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route
-        path="/"
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <Layout>
@@ -70,8 +71,8 @@ const App: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      {/* Redirect any unknown routes to home */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Redirect any unknown routes to dashboard */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };

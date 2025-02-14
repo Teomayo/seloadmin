@@ -1,30 +1,32 @@
 package models
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
+	"selo/internal/firebase"
+
+	"firebase.google.com/go/v4/auth"
+	"google.golang.org/api/iterator"
 )
 
 // User represents the main user model, similar to Django's User model
 type User struct {
-	gorm.Model
-	Username    string `gorm:"unique;not null"`
-	Email       string `gorm:"unique;not null"`
-	Password    string `gorm:"not null"`
-	FirstName   string
-	LastName    string
-	IsActive    bool `gorm:"default:true"`
-	IsStaff     bool `gorm:"default:false"`
-	IsSuperuser bool `gorm:"default:false"`
-	Position    string
-	PhoneNumber string
-	Occupation  string
-	Paid        bool
-	LastLogin   time.Time
-	DateJoined  time.Time `gorm:"default:CURRENT_TIMESTAMP"`
+	UID         string    `firestore:"uid" json:"uid"`
+	Email       string    `firestore:"email" json:"email"`
+	FirstName   string    `firestore:"first_name" json:"first_name"`
+	LastName    string    `firestore:"last_name" json:"last_name"`
+	IsActive    bool      `firestore:"is_active	 json:"is_active"`
+	IsStaff     bool      `firestore:"is_staff" json:"is_staff"`
+	IsSuperuser bool      `firestore:"is_superuser" json:"is_superuser"`
+	Position    string    `firestore:"position" json:"position"`
+	PhoneNumber string    `firestore:"phone_number" json:"phone_number"`
+	Occupation  string    `firestore:"occupation" json:"occupation"`
+	Paid        bool      `firestore:"paid" json:"paid"`
+	LastLogin   time.Time `firestore:"last_login" json:"last_login"`
+	DateJoined  time.Time `firestore:"date_joined" json:"date_joined"`
 }
 
 type UpdateUserInfo struct {
@@ -48,7 +50,7 @@ type UpdateUserInfoAdmin struct {
 }
 
 type MemberResponse struct {
-	ID          uint   `json:"id"`
+	UID         string `json:"uid"`
 	FirstName   string `json:"first_name"`
 	LastName    string `json:"last_name"`
 	Email       string `json:"email"`
@@ -63,32 +65,69 @@ type UpdatePassword struct {
 	NewPassword     string `json:"new_password"`
 }
 
-// BeforeCreate is a GORM hook that's called before creating a new user
-func (u *User) BeforeCreate(*gorm.DB) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+func GetUserByUID(uid string) (*User, error) {
+	doc, err := firebase.FirestoreClient.Collection("users").Doc(uid).Get(context.Background())
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("error fetching user: %v", err)
 	}
-	u.Password = string(hashedPassword)
-	return nil
+
+	var user User
+	if err := doc.DataTo(&user); err != nil {
+		return nil, fmt.Errorf("error parsing user data: %v", err)
+	}
+
+	return &user, nil
 }
 
-// CheckPassword verifies if the provided password matches the stored hash
-func (u *User) CheckPassword(password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
-	if err != nil {
-		log.Printf("Password comparison failed: %v", err)
-		return false
-	}
-	return true
+func CreateUserRecord(authUser *auth.UserRecord, userData *User) error {
+	userData.UID = authUser.UID
+	userData.DateJoined = time.Now()
+	userData.IsActive = true
+
+	_, err := firebase.FirestoreClient.Collection("users").Doc(authUser.UID).Set(context.Background(), userData)
+	return err
 }
 
-// SetPassword updates the user's password with a new hashed version
-func (u *User) SetPassword(password string) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
+func GetUserByEmail(email string) (*User, error) {
+	iter := firebase.FirestoreClient.Collection("users").Where("email", "==", email).Documents(context.Background())
+	doc, err := iter.Next()
+
+	if err == iterator.Done {
+		return nil, nil
 	}
-	u.Password = string(hashedPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	var user User
+	err = doc.DataTo(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	user.UID = doc.Ref.ID
+	return &user, nil
+}
+
+// Add a helper function to create a user document
+func CreateUserDocument(uid string, user *User) error {
+	log.Printf("Creating user document for UID: %s", uid)
+
+	_, err := firebase.FirestoreClient.Collection("users").Doc(uid).Set(context.Background(), map[string]interface{}{
+		"email":       user.Email,
+		"firstName":   user.FirstName,
+		"lastName":    user.LastName,
+		"isActive":    true,
+		"isStaff":     false,
+		"isSuperuser": false,
+		"dateJoined":  time.Now(),
+	})
+
+	if err != nil {
+		log.Printf("Error creating user document: %v", err)
+		return fmt.Errorf("failed to create user document: %v", err)
+	}
+
+	log.Printf("Successfully created user document")
 	return nil
 }

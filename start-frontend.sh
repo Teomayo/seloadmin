@@ -3,17 +3,14 @@
 # Kill any existing processes on the required ports
 ./utils/kill_ports.sh
 
-# Start backend server in the background
-echo "Starting backend server..."
-cd backend
-go run main.go &
+# Start emulators
 
-# Wait a moment for backend to initialize
-sleep 2
-
+echo "Starting emulators..."
+cd frontend
+# run in the background
+firebase emulators:start --project=selo-b7d60 &
 # Start frontend with environment variables for hot reloading
 echo "Starting frontend..."
-cd ../frontend
 WATCHPACK_POLLING=true FAST_REFRESH=true npm start
 
 # This will keep the script running
