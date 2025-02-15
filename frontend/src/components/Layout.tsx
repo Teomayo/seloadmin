@@ -7,7 +7,7 @@ import { logout } from "../services/api";
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
-  const username = localStorage.getItem("userName");
+  const email = localStorage.getItem("email");
   const userRole = localStorage.getItem("userRole");
 
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="mobile-sidebar-header">
-                  <span className="user-name">{username}</span>
+                  <span className="user-name">{email}</span>
                 </div>
                 <nav className="mobile-nav">
                   <Link to="/" onClick={() => setIsSidebarVisible(false)}>
@@ -105,7 +105,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <button className="logout-button" onClick={handleLogout}>
               Logout
             </button>
-            <small>Logged in as: {username}</small>
+            <small>Logged in as: {email}</small>
           </div>
         </div>
       )}

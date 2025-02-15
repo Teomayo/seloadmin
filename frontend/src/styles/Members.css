@@ -56,6 +56,9 @@
 }
 
 @media (max-width: 768px) {
+  .members-container.mobile {
+    padding: 1rem;
+  }
   .members-container table {
     font-size: 14px; /* Adjust font size for smaller screens */
   }

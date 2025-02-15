@@ -14,22 +14,24 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({
   onHide,
   users,
 }) => {
-  const [selectedUsername, setSelectedUsername] = useState<string>("");
+  const [selectedUID, setSelectedUID] = useState<string>("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      window.confirm(
-        `Are you sure you want to delete user ${selectedUsername}?`
-      )
-    ) {
+    if (!selectedUID) {
+      alert("Please select a user to delete");
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete this user?`)) {
       try {
-        await deleteUser(selectedUsername);
+        await deleteUser(selectedUID);
         alert("User deleted successfully!");
+        setSelectedUID(""); // Reset selection
         onHide();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error deleting user:", error);
-        alert("Failed to delete user.");
+        alert(error.message || "Failed to delete user.");
       }
     }
   };
@@ -41,24 +43,28 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({
       </Modal.Header>
       <Modal.Body>
         <Form onSubmit={handleSubmit}>
-          <Form.Group controlId="formUsername">
+          <Form.Group controlId="formUID">
             <Form.Label>Select User to Delete</Form.Label>
-            <Form.Control
-              as="select"
-              value={selectedUsername}
-              onChange={(e) => setSelectedUsername(e.target.value)}
+            <Form.Select
+              value={selectedUID}
+              onChange={(e) => setSelectedUID(e.target.value)}
               required
             >
               <option value="">Select a user...</option>
               {users.map((user) => (
-                <option key={user.ID} value={user.Username}>
-                  {user.Username}
+                <option key={user.uid} value={user.uid}>
+                  {user.email} ({user.first_name} {user.last_name})
                 </option>
               ))}
-            </Form.Control>
+            </Form.Select>
           </Form.Group>
           <div className="modal-footer">
-            <Button variant="danger" type="submit" className="admin-button">
+            <Button
+              variant="danger"
+              type="submit"
+              className="admin-button"
+              disabled={!selectedUID}
+            >
               Delete User
             </Button>
           </div>

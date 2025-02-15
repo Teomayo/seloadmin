@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "../styles/Members.css"; // Create a CSS file for styling
 import { getMembers } from "../services/api";
 import { Member } from "../interfaces";
+import { auth } from "../services/firebase";
 
 const Members: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
@@ -14,10 +15,24 @@ const Members: React.FC = () => {
 
   useEffect(() => {
     const fetchMembers = async () => {
-      const response = await getMembers();
-      setMembers(response);
-      setLoading(false);
+      try {
+        // Wait for Firebase Auth to initialize
+        await new Promise((resolve) => {
+          const unsubscribe = auth.onAuthStateChanged((user: any) => {
+            unsubscribe();
+            resolve(user);
+          });
+        });
+
+        const response = await getMembers();
+        setMembers(response);
+      } catch (error) {
+        console.error("Error fetching members:", error);
+      } finally {
+        setLoading(false);
+      }
     };
+
     fetchMembers();
   }, []);
 
@@ -71,23 +86,23 @@ const Members: React.FC = () => {
         // Mobile view with dropdown arrows
         <div>
           {filteredMembers.map((member) => (
-            <div key={member.id} className="member-card">
+            <div key={member.uid} className="member-card">
               <div
                 className="member-header"
-                onClick={() => handleToggle(member.id)}
+                onClick={() => handleToggle(member.uid)}
               >
                 <h3>
                   {member.first_name} {member.last_name}
                 </h3>
                 <span
                   className={`dropdown-arrow ${
-                    expandedMembers.includes(member.id) ? "expanded" : ""
+                    expandedMembers.includes(member.uid) ? "expanded" : ""
                   }`}
                 >
                   ▼
                 </span>
               </div>
-              {expandedMembers.includes(member.id) && (
+              {expandedMembers.includes(member.uid) && (
                 <div className="member-details">
                   <p>
                     Email: <a href={`mailto:${member.email}`}>{member.email}</a>
@@ -166,7 +181,7 @@ const Members: React.FC = () => {
           </thead>
           <tbody>
             {filteredMembers.map((member) => (
-              <tr key={member.id}>
+              <tr key={member.uid}>
                 <td>{member.first_name}</td>
                 <td>{member.last_name}</td>
                 <td>

@@ -12,17 +12,17 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
     username: "",
     email: "",
     password: "",
-    firstName: "",
-    lastName: "",
+    first_name: "",
+    last_name: "",
     position: "",
-    phoneNumber: "",
+    phone_number: "",
     occupation: "",
-    isActive: false,
-    isStaff: false,
-    isSuperUser: false,
+    is_active: false,
+    is_staff: false,
+    is_superuser: false,
     paid: false,
-    lastLogin: new Date().toISOString(),
-    dateJoined: new Date().toISOString(),
+    last_login: new Date().toISOString(),
+    date_joined: new Date().toISOString(),
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,23 +37,26 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
     e.preventDefault();
     try {
       await createUser(userData);
-      alert("User created successfully!");
+      alert(
+        "User created successfully! A password reset email has been sent to " +
+          userData.email
+      );
       onHide();
       setUserData({
         username: "",
         email: "",
         password: "",
-        firstName: "",
-        lastName: "",
+        first_name: "",
+        last_name: "",
         position: "",
-        phoneNumber: "",
+        phone_number: "",
         occupation: "",
-        isActive: false,
-        isStaff: false,
-        isSuperUser: false,
+        is_active: false,
+        is_staff: false,
+        is_superuser: false,
         paid: false,
-        lastLogin: new Date().toISOString(),
-        dateJoined: new Date().toISOString(),
+        last_login: new Date().toISOString(),
+        date_joined: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Error creating user:", error);
@@ -90,24 +93,13 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
               required
             />
           </Form.Group>
-          <Form.Group controlId="formPassword">
-            <Form.Label>Password</Form.Label>
-            <Form.Control
-              type="password"
-              name="password"
-              placeholder="Enter password"
-              value={userData.password}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
           <Form.Group controlId="formFirstName">
             <Form.Label>First Name</Form.Label>
             <Form.Control
               type="text"
-              name="firstName"
+              name="first_name"
               placeholder="Enter first name"
-              value={userData.firstName}
+              value={userData.first_name}
               onChange={handleChange}
               required
             />
@@ -116,9 +108,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
             <Form.Label>Last Name</Form.Label>
             <Form.Control
               type="text"
-              name="lastName"
+              name="last_name"
               placeholder="Enter last name"
-              value={userData.lastName}
+              value={userData.last_name}
               onChange={handleChange}
               required
             />
@@ -137,9 +129,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
             <Form.Label>Phone Number</Form.Label>
             <Form.Control
               type="text"
-              name="phoneNumber"
+              name="phone_number"
               placeholder="Enter phone number"
-              value={userData.phoneNumber}
+              value={userData.phone_number}
               onChange={handleChange}
             />
           </Form.Group>
@@ -157,18 +149,18 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
           <Form.Group className="checkbox-container">
             <Form.Check
               type="checkbox"
-              id="isStaff"
-              name="isStaff"
+              id="is_staff"
+              name="is_staff"
               label="Staff"
-              checked={userData.isStaff}
+              checked={userData.is_staff}
               onChange={handleChange}
             />
             <Form.Check
               type="checkbox"
-              id="isSuperUser"
-              name="isSuperUser"
+              id="is_superuser"
+              name="is_superuser"
               label="Super User"
-              checked={userData.isSuperUser}
+              checked={userData.is_superuser}
               onChange={handleChange}
             />
             <Form.Check
@@ -180,6 +172,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
               onChange={handleChange}
             />
           </Form.Group>
+          <div className="form-text text-muted mb-3">
+            A password reset email will be sent to the user's email address.
+          </div>
           <div className="modal-footer">
             <button className="admin-button" type="submit">
               Create User

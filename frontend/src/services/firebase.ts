@@ -1,5 +1,10 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
+import {
+  getAuth,
+  connectAuthEmulator,
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -15,10 +20,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
+const auth = getAuth(app);
+
+// Enable persistent auth state
+setPersistence(auth, browserLocalPersistence);
 
 // Initialize Cloud Firestore and get a reference to the service
-export const db = getFirestore(app);
+const db = getFirestore(app);
 
 // Connect to emulators in development mode
 if (process.env.REACT_APP_ENV_MODE === "development") {
@@ -27,4 +35,5 @@ if (process.env.REACT_APP_ENV_MODE === "development") {
   connectFirestoreEmulator(db, "127.0.0.1", 8000);
 }
 
+export { auth, db };
 export default app;

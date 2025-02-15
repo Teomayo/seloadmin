@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import "../styles/Settings.css";
 import {
-  getMemberInfo,
   logout,
   updateMemberInfo,
   updatePassword,
+  getMemberInfo,
 } from "../services/api";
+import { auth } from "../services/firebase";
 
 interface WidgetSettings {
   orthodox: boolean;
@@ -39,25 +40,40 @@ const Settings: React.FC = () => {
     newPassword: "",
     confirmPassword: "",
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchMemberDetails = async () => {
-      const username = localStorage.getItem("userName");
-      if (username) {
-        try {
-          const memberDetails = await getMemberInfo(username);
-          console.log(memberDetails);
-          setUserEmail(memberDetails.email);
-          setUserPhone(memberDetails.phone_number);
-          setUserOccupation(memberDetails.occupation);
-        } catch (error) {
-          console.error("Failed to fetch member details:", error);
-        }
+      const uid = localStorage.getItem("uid");
+      if (!uid) {
+        console.error("No UID found in localStorage");
+        return;
+      }
+
+      // Wait for Firebase Auth to initialize
+      await new Promise((resolve) => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          unsubscribe();
+          resolve(user);
+        });
+      });
+
+      try {
+        const memberDetails = await getMemberInfo(uid);
+
+        setUserEmail(memberDetails[0].email);
+        setUserPhone(memberDetails[0].phone_number);
+        setUserOccupation(memberDetails[0].occupation);
+      } catch (error) {
+        console.error("Failed to fetch member details:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchMemberDetails();
   }, []);
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth <= 768);
@@ -92,53 +108,72 @@ const Settings: React.FC = () => {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const username = localStorage.getItem("userName");
-    if (username) {
-      try {
-        await updateMemberInfo(username, {
-          email: userEmail,
-          phone_number: userPhone,
-          occupation: userOccupation,
-        });
-        alert("Account information updated successfully!");
-        setIsEditing(false); // Exit edit mode after successful update
-      } catch (error) {
-        console.error("Failed to update member details:", error);
-        alert("Failed to update account information.");
-      }
+    const uid = localStorage.getItem("uid");
+    if (!uid) {
+      console.error("No UID found in localStorage");
+      alert("Please log in again");
+      return;
+    }
+
+    try {
+      await updateMemberInfo(uid, {
+        email: userEmail,
+        phone_number: userPhone,
+        occupation: userOccupation,
+      });
+      alert("Account information updated successfully!");
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to update member details:", error);
+      alert("Failed to update account information.");
     }
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Debug log to check values
+    console.log("Password Data:", {
+      currentPassword: passwordData.currentPassword ? "exists" : "missing",
+      newPassword: passwordData.newPassword ? "exists" : "missing",
+      confirmPassword: passwordData.confirmPassword ? "exists" : "missing",
+    });
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert("New passwords do not match!");
       return;
     }
 
-    const username = localStorage.getItem("userName");
-    if (username) {
-      try {
-        await updatePassword(username, {
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword,
-        });
-        alert("Password updated successfully!");
-        setShowPasswordChange(false);
-        setPasswordData({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-      } catch (error) {
-        console.error("Failed to update password:", error);
-        alert(
-          "Failed to update password. Please check your current password and try again."
-        );
-      }
+    const uid = localStorage.getItem("uid");
+    if (!uid) {
+      console.error("No UID found in localStorage");
+      alert("Please log in again");
+      return;
+    }
+
+    try {
+      await updatePassword(uid, {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+      alert("Password updated successfully!");
+      setShowPasswordChange(false);
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error: any) {
+      console.error("Failed to update password:", error);
+      alert(
+        error.response?.data || "Failed to update password. Please try again."
+      );
     }
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className={`settings-container ${isMobileView ? "mobile" : ""}`}>

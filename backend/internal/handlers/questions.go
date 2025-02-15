@@ -3,15 +3,16 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"selo/internal/firebase"
-	"selo/internal/middleware"
 	"strings"
 	"time"
 
+	"strconv"
+
 	"cloud.google.com/go/firestore"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	"google.golang.org/api/iterator"
 )
@@ -33,8 +34,8 @@ type QuestionResponse struct {
 
 func GetQuestions(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
+	log.Printf("GetQuestions handler called")
 
-	// Get all questions from Firestore
 	iter := firebase.FirestoreClient.Collection("questions").Documents(ctx)
 	defer iter.Stop()
 
@@ -50,28 +51,31 @@ func GetQuestions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Log the raw data for debugging
+		log.Printf("Raw Firestore data: %+v", doc.Data())
+
 		var question struct {
-			Text      string    `firestore:"text"`
-			CreatedAt time.Time `firestore:"created_at"`
+			Text      string    `firestore:"text,omitempty"`
+			CreatedAt time.Time `firestore:"created_at,omitempty"`
 			Choices   []struct {
 				Text  string `firestore:"text"`
-				Votes int    `firestore:"votes"`
-			} `firestore:"choices"`
-			VotedUsers []string `firestore:"voted_users"`
+				Votes int64  `firestore:"votes"`
+			} `firestore:"choices,omitempty"`
+			VotedUsers []string `firestore:"voted_users,omitempty"`
 		}
 
 		if err := doc.DataTo(&question); err != nil {
-			log.Printf("Error parsing question data: %v", err)
+			log.Printf("Error parsing question data for doc %s: %v", doc.Ref.ID, err)
 			continue
 		}
 
 		// Convert choices to response format
 		var choiceResponses []ChoiceResponse
-		for i, c := range question.Choices {
+		for idx, c := range question.Choices {
 			choiceResponses = append(choiceResponses, ChoiceResponse{
-				ID:         doc.Ref.ID + "_" + string(i), // Create a unique ID for each choice
+				ID:         fmt.Sprintf("%s_%d", doc.Ref.ID, idx),
 				Text:       c.Text,
-				Votes:      c.Votes,
+				Votes:      int(c.Votes),
 				QuestionID: doc.Ref.ID,
 			})
 		}
@@ -86,7 +90,11 @@ func GetQuestions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func GetChoices(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +111,7 @@ func GetChoices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var question struct {
-		Choices []struct {
+		Choices map[string]struct {
 			Text  string `firestore:"text"`
 			Votes int    `firestore:"votes"`
 		} `firestore:"choices"`
@@ -117,9 +125,9 @@ func GetChoices(w http.ResponseWriter, r *http.Request) {
 
 	// Convert to response format
 	var choices []ChoiceResponse
-	for i, c := range question.Choices {
+	for idx, c := range question.Choices {
 		choices = append(choices, ChoiceResponse{
-			ID:         questionID + "_" + string(i),
+			ID:         questionID + "_" + idx,
 			Text:       c.Text,
 			Votes:      c.Votes,
 			QuestionID: questionID,
@@ -135,6 +143,11 @@ func VoteForChoice(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	choiceIDFull := vars["id"]
 
+	log.Printf("VoteForChoice handler called")
+	log.Printf("Request URL: %s", r.URL.Path)
+	log.Printf("Request method: %s", r.Method)
+	log.Printf("Authorization header: %s", r.Header.Get("Authorization"))
+
 	// Split the choice ID to get question ID and choice index
 	parts := strings.Split(choiceIDFull, "_")
 	if len(parts) != 2 {
@@ -144,65 +157,140 @@ func VoteForChoice(w http.ResponseWriter, r *http.Request) {
 	questionID := parts[0]
 	choiceIndex := parts[1]
 
-	// Get username from JWT token
-	claims := r.Context().Value(middleware.UserContextKey).(jwt.MapClaims)
-	username := claims["username"].(string)
+	log.Printf("Question ID: %s, Choice Index: %s", questionID, choiceIndex)
+
+	// Get and verify the Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "No authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Remove "Bearer " prefix
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+	auth, err := firebase.App.Auth(ctx)
+	if err != nil {
+		log.Printf("Error getting Firebase Auth client: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	token, err := auth.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		log.Printf("Error verifying token: %v", err)
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	email, ok := token.Claims["email"].(string)
+	if !ok {
+		log.Printf("Failed to get email from token claims")
+		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+		return
+	}
+
+	log.Printf("User email from verified token: %s", email)
+
+	// Get reference to the question document
+	docRef := firebase.FirestoreClient.Collection("questions").Doc(questionID)
 
 	// Start a transaction
-	err := firebase.FirestoreClient.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
-		docRef := firebase.FirestoreClient.Collection("questions").Doc(questionID)
-
-		// Get the current question data
+	err = firebase.FirestoreClient.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// Get the current document
 		doc, err := tx.Get(docRef)
 		if err != nil {
+			log.Printf("Error getting document: %v", err)
 			return err
 		}
 
-		var question struct {
-			Choices    []map[string]interface{} `firestore:"choices"`
-			VotedUsers []string                 `firestore:"voted_users"`
+		// Get the current data
+		data := doc.Data()
+		log.Printf("Current document data: %+v", data)
+
+		// Extract choices array
+		choicesInterface, exists := data["choices"]
+		if !exists {
+			return fmt.Errorf("choices field not found")
 		}
-		if err := doc.DataTo(&question); err != nil {
-			return err
+
+		choices, ok := choicesInterface.([]interface{})
+		if !ok {
+			return fmt.Errorf("invalid choices format")
+		}
+
+		// Validate choice index
+		choiceIdx, err := strconv.Atoi(choiceIndex)
+		if err != nil {
+			return fmt.Errorf("invalid choice index")
+		}
+
+		if choiceIdx < 0 || choiceIdx >= len(choices) {
+			return fmt.Errorf("invalid choice index")
+		}
+
+		// Extract voted_users array
+		votedUsersInterface, exists := data["voted_users"]
+		var votedUsers []string
+		if exists {
+			votedUsersArr, ok := votedUsersInterface.([]interface{})
+			if ok {
+				for _, v := range votedUsersArr {
+					if str, ok := v.(string); ok {
+						votedUsers = append(votedUsers, str)
+					}
+				}
+			}
 		}
 
 		// Check if user already voted
-		for _, voter := range question.VotedUsers {
-			if voter == username {
+		for _, voter := range votedUsers {
+			if voter == email {
 				return &customError{"User already voted"}
 			}
 		}
 
-		// Update the vote count for the specific choice
-		idx := int(choiceIndex[0] - '0') // Convert string index to int
-		if idx < 0 || idx >= len(question.Choices) {
-			return &customError{"Invalid choice index"}
+		// Get the specific choice
+		choice, ok := choices[choiceIdx].(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("invalid choice data format")
 		}
 
-		// Increment the votes
-		question.Choices[idx]["votes"] = question.Choices[idx]["votes"].(int) + 1
+		// Increment votes
+		currentVotes, ok := choice["votes"].(int64)
+		if !ok {
+			currentVotes = 0
+		}
+		choice["votes"] = currentVotes + 1
+
+		// Update choices array
+		choices[choiceIdx] = choice
 
 		// Add user to voted list
-		question.VotedUsers = append(question.VotedUsers, username)
+		votedUsers = append(votedUsers, email)
 
 		// Update the document
-		return tx.Set(docRef, map[string]interface{}{
-			"choices":     question.Choices,
-			"voted_users": question.VotedUsers,
-		}, firestore.MergeAll)
+		updates := map[string]interface{}{
+			"choices":     choices,
+			"voted_users": votedUsers,
+		}
+
+		return tx.Set(docRef, updates, firestore.MergeAll)
 	})
 
 	if err != nil {
 		if cerr, ok := err.(*customError); ok {
 			http.Error(w, cerr.msg, http.StatusBadRequest)
-		} else {
-			log.Printf("Error in transaction: %v", err)
-			http.Error(w, "Error processing vote", http.StatusInternalServerError)
+			return
 		}
+		log.Printf("Error in transaction: %v", err)
+		http.Error(w, "Error processing vote", http.StatusInternalServerError)
 		return
 	}
 
+	// Send success response
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
 
 // Custom error type for handling specific error cases

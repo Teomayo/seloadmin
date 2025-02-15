@@ -6,12 +6,9 @@ toolchain go1.23.4
 
 require (
 	cloud.google.com/go/firestore v1.15.0
-	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/gorilla/mux v1.8.1
 	github.com/joho/godotenv v1.5.1
 	github.com/rs/cors v1.11.1
-	google.golang.org/grpc v1.70.0
-	gorm.io/gorm v1.25.12
 )
 
 require (
@@ -50,13 +47,12 @@ require (
 	google.golang.org/genproto v0.0.0-20240213162025-012b6fc9bca9 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250127172529-29210b9bc287 // indirect
+	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.4 // indirect
 )
 
 require (
 	firebase.google.com/go/v4 v4.15.1
-	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.5 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/api v0.220.0
 )

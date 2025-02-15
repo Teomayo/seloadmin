@@ -16,80 +16,56 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
   onHide,
   users,
 }) => {
-  const [selectedUsername, setSelectedUsername] = useState("");
+  const [selectedUID, setSelectedUID] = useState("");
   const [userData, setUserData] = useState<User>({
-    ID: 0,
-    Username: "",
-    Email: "",
-    Password: "",
-    FirstName: "",
-    LastName: "",
-    Position: "",
-    PhoneNumber: "",
-    Occupation: "",
-    IsActive: false,
-    IsStaff: false,
-    IsSuperUser: false,
-    Paid: false,
-    LastLogin: "",
-    DateJoined: "",
+    uid: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    position: "",
+    phone_number: "",
+    occupation: "",
+    is_active: false,
+    is_staff: false,
+    is_superuser: false,
+    paid: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateUser(userData.Username, userData);
+    await updateUser(userData.uid, userData);
     alert("User updated successfully!");
     onHide();
   };
 
-  // Reset form when modal is opened/closed
   useEffect(() => {
     if (!show) {
-      setSelectedUsername("");
+      setSelectedUID("");
       setUserData({
-        ID: 0,
-        Username: "",
-        Email: "",
-        Password: "",
-        FirstName: "",
-        LastName: "",
-        Position: "",
-        PhoneNumber: "",
-        Occupation: "",
-        IsActive: false,
-        IsStaff: false,
-        IsSuperUser: false,
-        Paid: false,
-        LastLogin: "",
-        DateJoined: "",
+        uid: "",
+        email: "",
+        first_name: "",
+        last_name: "",
+        position: "",
+        phone_number: "",
+        occupation: "",
+        is_active: false,
+        is_staff: false,
+        is_superuser: false,
+        paid: false,
       });
     }
   }, [show]);
 
   const handleUserSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    const newUsername = e.target.value;
-    setSelectedUsername(newUsername);
+    const newUID = e.target.value;
+    setSelectedUID(newUID);
 
-    const selectedUser = users.find(
-      (user: User) => user.Username === newUsername
-    );
+    const selectedUser = users.find((user: User) => user.uid === newUID);
     if (selectedUser) {
       setUserData({
-        ID: selectedUser.ID || 0,
-        Username: selectedUser.Username || "",
-        Email: selectedUser.Email || "",
-        Password: "", // Clear password field
-        FirstName: selectedUser.FirstName || "",
-        LastName: selectedUser.LastName || "",
-        Position: selectedUser.Position || "",
-        PhoneNumber: selectedUser.PhoneNumber || "",
-        Occupation: selectedUser.Occupation || "",
-        IsActive: selectedUser.IsActive || false,
-        IsStaff: selectedUser.IsStaff || false,
-        IsSuperUser: selectedUser.IsSuperUser || false,
-        Paid: selectedUser.Paid || false,
-        LastLogin: selectedUser.LastLogin || "",
-        DateJoined: selectedUser.DateJoined || "",
+        ...selectedUser,
+        // Don't include password in the form data
       });
     }
   };
@@ -116,17 +92,17 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
       </Modal.Header>
       <Modal.Body>
         <Form onSubmit={handleSubmit}>
-          <Form.Group controlId="formUsername">
+          <Form.Group controlId="formUID">
             <Form.Label>Select User</Form.Label>
             <Form.Select
-              value={selectedUsername || ""}
+              value={selectedUID}
               onChange={handleUserSelect}
               required
             >
               <option value="">Select a user...</option>
               {users.map((user: User) => (
-                <option key={user.ID} value={user.Username || ""}>
-                  {user.Username}
+                <option key={user.uid} value={user.uid}>
+                  {user.email} ({user.first_name} {user.last_name})
                 </option>
               ))}
             </Form.Select>
@@ -136,22 +112,11 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
             <Form.Label>Email</Form.Label>
             <Form.Control
               type="email"
-              name="Email"
+              name="email"
               placeholder="Enter email"
-              value={userData.Email || ""}
+              value={userData.email || ""}
               onChange={handleChange}
               required
-            />
-          </Form.Group>
-
-          <Form.Group controlId="formPassword">
-            <Form.Label>Password</Form.Label>
-            <Form.Control
-              type="password"
-              name="Password"
-              placeholder="Enter new password (optional)"
-              value={userData.Password || ""}
-              onChange={handleChange}
             />
           </Form.Group>
 
@@ -159,9 +124,9 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
             <Form.Label>First Name</Form.Label>
             <Form.Control
               type="text"
-              name="FirstName"
+              name="first_name"
               placeholder="Enter first name"
-              value={userData.FirstName || ""}
+              value={userData.first_name || ""}
               onChange={handleChange}
               required
             />
@@ -171,9 +136,9 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
             <Form.Label>Last Name</Form.Label>
             <Form.Control
               type="text"
-              name="LastName"
+              name="last_name"
               placeholder="Enter last name"
-              value={userData.LastName || ""}
+              value={userData.last_name || ""}
               onChange={handleChange}
               required
             />
@@ -183,9 +148,9 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
             <Form.Label>Position</Form.Label>
             <Form.Control
               type="text"
-              name="Position"
+              name="position"
               placeholder="Enter position"
-              value={userData.Position || ""}
+              value={userData.position || ""}
               onChange={handleChange}
             />
           </Form.Group>
@@ -194,9 +159,9 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
             <Form.Label>Phone Number</Form.Label>
             <Form.Control
               type="text"
-              name="PhoneNumber"
+              name="phone_number"
               placeholder="Enter phone number"
-              value={userData.PhoneNumber || ""}
+              value={userData.phone_number || ""}
               onChange={handleChange}
             />
           </Form.Group>
@@ -205,9 +170,9 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
             <Form.Label>Occupation</Form.Label>
             <Form.Control
               type="text"
-              name="Occupation"
+              name="occupation"
               placeholder="Enter occupation"
-              value={userData.Occupation || ""}
+              value={userData.occupation || ""}
               onChange={handleChange}
             />
           </Form.Group>
@@ -217,25 +182,25 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
             <Form.Check
               type="checkbox"
               id="isStaff"
-              name="IsStaff"
+              name="is_staff"
               label="Staff"
-              checked={userData.IsStaff || false}
+              checked={userData.is_staff || false}
               onChange={handleChange}
             />
             <Form.Check
               type="checkbox"
               id="isSuperUser"
-              name="IsSuperUser"
+              name="is_superuser"
               label="Super User"
-              checked={userData.IsSuperUser || false}
+              checked={userData.is_superuser || false}
               onChange={handleChange}
             />
             <Form.Check
               type="checkbox"
               id="paid"
-              name="Paid"
+              name="paid"
               label="Paid"
-              checked={userData.Paid || false}
+              checked={userData.paid || false}
               onChange={handleChange}
             />
           </Form.Group>

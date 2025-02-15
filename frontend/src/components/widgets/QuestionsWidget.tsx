@@ -3,14 +3,14 @@ import { getQuestions, voteForChoice } from "../../services/api";
 import "../../styles/widgets/QuestionsWidget.css";
 
 interface Choice {
-  id: number;
+  id: string;
   text: string;
   votes: number;
-  question_id: number;
+  question_id: string;
 }
 
 interface Question {
-  id: number;
+  id: string;
   text: string;
   created_at: string;
   choices: Choice[];
@@ -25,9 +25,11 @@ const QuestionsWidget: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const userName = localStorage.getItem("userName");
 
-  const [votedQuestions, setVotedQuestions] = useState<number[]>(() => {
+  const [votedQuestions, setVotedQuestions] = useState<string[]>(() => {
     const savedVotedQuestions = sessionStorage.getItem("votedQuestions");
     return savedVotedQuestions ? JSON.parse(savedVotedQuestions) : [];
   });
@@ -35,6 +37,8 @@ const QuestionsWidget: React.FC = () => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const result = await getQuestions();
 
         if (Array.isArray(result)) {
@@ -57,15 +61,24 @@ const QuestionsWidget: React.FC = () => {
           setQuestions(validQuestions);
         } else {
           console.error("Expected array of questions, got:", typeof result);
+          setError("Invalid data format received");
           setQuestions([]);
         }
       } catch (error) {
         console.error("Error fetching questions:", error);
+        setError("Failed to load questions");
         setQuestions([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchQuestions();
+    // Add a small delay to ensure auth is initialized
+    const timer = setTimeout(() => {
+      fetchQuestions();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [votedQuestions]);
 
   useEffect(() => {
@@ -84,29 +97,34 @@ const QuestionsWidget: React.FC = () => {
   const currentQuestion = questions[currentQuestionIndex];
 
   const handleVote = async (
-    choiceId: number,
+    choiceId: string,
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
     stopPropogation(event);
     if (hasVoted) return;
-    const response = await voteForChoice(choiceId);
-    if (response.status === 200) {
-      setHasVoted(true);
-      const updatedQuestions = questions.filter(
-        (question) => question.id !== currentQuestion.id
-      );
-      setQuestions(updatedQuestions);
-      setCurrentQuestionIndex((prev: number) =>
-        prev >= updatedQuestions.length ? 0 : prev
-      );
+    console.log("Voting for choice:", choiceId);
+    try {
+      const response = await voteForChoice(choiceId);
+      if (response.status === 200) {
+        setHasVoted(true);
+        const updatedQuestions = questions.filter(
+          (question) => question.id !== currentQuestion.id
+        );
+        setQuestions(updatedQuestions);
+        setCurrentQuestionIndex((prev: number) =>
+          prev >= updatedQuestions.length ? 0 : prev
+        );
 
-      // Update votedQuestions
-      const updatedVotedQuestions = [...votedQuestions, currentQuestion.id];
-      setVotedQuestions(updatedVotedQuestions);
-      sessionStorage.setItem(
-        "votedQuestions",
-        JSON.stringify(updatedVotedQuestions)
-      );
+        // Update votedQuestions with string IDs
+        const updatedVotedQuestions = [...votedQuestions, currentQuestion.id];
+        setVotedQuestions(updatedVotedQuestions);
+        sessionStorage.setItem(
+          "votedQuestions",
+          JSON.stringify(updatedVotedQuestions)
+        );
+      }
+    } catch (error) {
+      console.error("Error voting:", error);
     }
   };
 
@@ -126,6 +144,24 @@ const QuestionsWidget: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="questions-widget">
+        <h2>Questions</h2>
+        <div>Loading questions...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="questions-widget">
+        <h2>Questions</h2>
+        <div>Error: {error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="questions-widget">
       <h2>Questions</h2>
@@ -134,12 +170,8 @@ const QuestionsWidget: React.FC = () => {
           <div className="questions-content">
             <h3 className="question-title">{currentQuestion.text}</h3>
             <ul className="options-list">
-              {currentQuestion.choices.map((choice: Choice, index: number) => (
-                <li
-                  key={`choice-${
-                    choice.id || `${currentQuestion.id}-${index}`
-                  }`}
-                >
+              {currentQuestion.choices.map((choice: Choice) => (
+                <li key={choice.id}>
                   <button
                     onClick={(event) => handleVote(choice.id, event)}
                     disabled={hasVoted}

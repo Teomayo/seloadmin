@@ -3,10 +3,13 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"selo/internal/firebase"
 	"selo/internal/models"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 	"firebase.google.com/go/v4/auth"
@@ -72,39 +75,40 @@ func GetMembersInfo(w http.ResponseWriter, r *http.Request) {
 
 func GetMemberInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	username := mux.Vars(r)["username"]
+	uid := mux.Vars(r)["uid"]
 
-	// Query user by email (assuming username is email)
-	iter := firebase.FirestoreClient.Collection("users").Where("email", "==", username).Documents(ctx)
+	// Get reference to users collection and create iterator
+	iter := firebase.FirestoreClient.Collection("users").Where("uid", "==", uid).Documents(ctx)
 	defer iter.Stop()
 
-	doc, err := iter.Next()
-	if err == iterator.Done {
-		http.Error(w, "Member not found", http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		log.Printf("Error querying user: %v", err)
-		http.Error(w, "Error retrieving member", http.StatusInternalServerError)
-		return
-	}
+	var response []models.MemberResponse
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("Error iterating users: %v", err)
+			http.Error(w, "Error retrieving members", http.StatusInternalServerError)
+			return
+		}
 
-	var member models.User
-	if err := doc.DataTo(&member); err != nil {
-		log.Printf("Error parsing user data: %v", err)
-		http.Error(w, "Error parsing member data", http.StatusInternalServerError)
-		return
-	}
+		var member models.User
+		if err := doc.DataTo(&member); err != nil {
+			log.Printf("Error parsing user data: %v", err)
+			continue
+		}
 
-	response := models.MemberResponse{
-		UID:         member.UID,
-		FirstName:   member.FirstName,
-		LastName:    member.LastName,
-		Email:       member.Email,
-		Position:    member.Position,
-		PhoneNumber: member.PhoneNumber,
-		Occupation:  member.Occupation,
-		Paid:        member.Paid,
+		response = append(response, models.MemberResponse{
+			UID:         member.UID,
+			FirstName:   member.FirstName,
+			LastName:    member.LastName,
+			Email:       member.Email,
+			Position:    member.Position,
+			PhoneNumber: member.PhoneNumber,
+			Occupation:  member.Occupation,
+			Paid:        member.Paid,
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -113,7 +117,36 @@ func GetMemberInfo(w http.ResponseWriter, r *http.Request) {
 
 func UpdateMemberInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	username := mux.Vars(r)["username"]
+	uid := mux.Vars(r)["uid"]
+
+	// Get and verify the Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		log.Printf("No authorization header")
+		http.Error(w, "No authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Remove "Bearer " prefix
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+	token, err := firebase.Auth.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		log.Printf("Error verifying token: %v", err)
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user claims to check if admin or if user is updating their own info
+	claims := token.Claims
+	tokenUID := claims["user_id"].(string)
+	isAdmin, _ := claims["admin"].(bool)
+
+	// Only allow if user is admin or updating their own info
+	if !isAdmin && tokenUID != uid {
+		log.Printf("Unauthorized access attempt: user %s trying to update %s", tokenUID, uid)
+		http.Error(w, "Unauthorized access", http.StatusForbidden)
+		return
+	}
 
 	var updatedInfo models.UpdateUserInfo
 	if err := json.NewDecoder(r.Body).Decode(&updatedInfo); err != nil {
@@ -121,20 +154,8 @@ func UpdateMemberInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query user by email
-	iter := firebase.FirestoreClient.Collection("users").Where("email", "==", username).Documents(ctx)
-	defer iter.Stop()
-
-	doc, err := iter.Next()
-	if err == iterator.Done {
-		http.Error(w, "Member not found", http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		log.Printf("Error querying user: %v", err)
-		http.Error(w, "Error retrieving member", http.StatusInternalServerError)
-		return
-	}
+	// Get document reference directly
+	docRef := firebase.FirestoreClient.Collection("users").Doc(uid)
 
 	// Prepare updates
 	updates := make(map[string]interface{})
@@ -149,7 +170,7 @@ func UpdateMemberInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update the document
-	_, err = doc.Ref.Set(ctx, updates, firestore.MergeAll)
+	_, err = docRef.Set(ctx, updates, firestore.MergeAll)
 	if err != nil {
 		log.Printf("Error updating user: %v", err)
 		http.Error(w, "Failed to update user", http.StatusInternalServerError)
@@ -161,7 +182,36 @@ func UpdateMemberInfo(w http.ResponseWriter, r *http.Request) {
 
 func UpdateMemberPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	username := mux.Vars(r)["username"]
+	uid := mux.Vars(r)["uid"]
+
+	// Get and verify the Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		log.Printf("No authorization header")
+		http.Error(w, "No authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Remove "Bearer " prefix
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+	token, err := firebase.Auth.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		log.Printf("Error verifying token: %v", err)
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user claims to check if admin or if user is updating their own info
+	claims := token.Claims
+	tokenUID := token.UID
+	isAdmin, _ := claims["admin"].(bool)
+
+	// Only allow if user is admin or updating their own info
+	if !isAdmin && tokenUID != uid {
+		log.Printf("Unauthorized access attempt: user %s trying to update password for %s", tokenUID, uid)
+		http.Error(w, "Unauthorized access", http.StatusForbidden)
+		return
+	}
 
 	var passwordData models.UpdatePassword
 	if err := json.NewDecoder(r.Body).Decode(&passwordData); err != nil {
@@ -169,37 +219,18 @@ func UpdateMemberPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query user by email
-	iter := firebase.FirestoreClient.Collection("users").Where("email", "==", username).Documents(ctx)
-	defer iter.Stop()
-
-	_, err := iter.Next()
-	if err == iterator.Done {
-		http.Error(w, "Member not found", http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		log.Printf("Error querying user: %v", err)
-		http.Error(w, "Error retrieving member", http.StatusInternalServerError)
-		return
-	}
-
-	// Update password in Firebase Auth
-	userRecord, err := firebase.Auth.GetUserByEmail(ctx, username)
-	if err != nil {
-		log.Printf("Error getting user from Auth: %v", err)
-		http.Error(w, "Error updating password", http.StatusInternalServerError)
-		return
-	}
 	if passwordData.NewPassword == "" {
 		http.Error(w, "New password cannot be empty", http.StatusBadRequest)
 		return
 	}
+
+	// Update password directly in Firebase Auth using UID
 	params := (&auth.UserToUpdate{}).
 		Password(passwordData.NewPassword)
-	_, err = firebase.Auth.UpdateUser(ctx, userRecord.UID, params)
+
+	_, err = firebase.Auth.UpdateUser(ctx, uid, params)
 	if err != nil {
-		log.Printf("Error updating password: %v", err)
+		log.Printf("Error updating password in Auth: %v", err)
 		http.Error(w, "Failed to update password", http.StatusInternalServerError)
 		return
 	}
@@ -207,9 +238,65 @@ func UpdateMemberPassword(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func GetUserByUID(w http.ResponseWriter, r *http.Request) {
+	log.Printf("GetUsers handler called")
+
+	uid := mux.Vars(r)["uid"]
+
+	user, err := models.GetUserByUID(uid)
+	if err != nil {
+		log.Printf("Error fetching user: %v", err)
+		http.Error(w, "Error fetching user", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
+
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
+	log.Printf("GetUsers handler called")
 
+	// Get and verify the Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		log.Printf("No authorization header")
+		http.Error(w, "No authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Remove "Bearer " prefix
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+	auth, err := firebase.App.Auth(ctx)
+	if err != nil {
+		log.Printf("Error getting Firebase Auth client: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	// Verify the token using Firebase Auth
+	token, err := auth.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		log.Printf("Error verifying token: %v", err)
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user claims to check if admin
+	claims := token.Claims
+	isAdmin, ok := claims["admin"].(bool)
+	if !ok || !isAdmin {
+		// Check if superuser in Firestore
+		email := claims["email"].(string)
+		userDoc, err := getUserByEmail(ctx, email)
+		if err != nil || !userDoc.IsSuperuser {
+			log.Printf("User not authorized: %v", err)
+			http.Error(w, "Unauthorized access", http.StatusUnauthorized)
+			return
+		}
+	}
+
+	// Get all users from Firestore
 	iter := firebase.FirestoreClient.Collection("users").Documents(ctx)
 	defer iter.Stop()
 
@@ -233,7 +320,33 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 		users = append(users, user)
 	}
 
-	json.NewEncoder(w).Encode(users)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(users); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// Helper function to get user by email
+func getUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	iter := firebase.FirestoreClient.Collection("users").Where("email", "==", email).Documents(ctx)
+	defer iter.Stop()
+
+	doc, err := iter.Next()
+	if err == iterator.Done {
+		return nil, fmt.Errorf("user not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var user models.User
+	if err := doc.DataTo(&user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -245,9 +358,13 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate a secure temporary password
+	tempPassword := generateTempPassword(16)
+
 	// Create user in Firebase Auth
 	params := (&auth.UserToCreate{}).
 		Email(newUser.Email).
+		Password(tempPassword).
 		DisplayName(newUser.FirstName + " " + newUser.LastName)
 
 	authUser, err := firebase.Auth.CreateUser(ctx, params)
@@ -264,153 +381,244 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	_, err = firebase.FirestoreClient.Collection("users").Doc(authUser.UID).Set(ctx, newUser)
 	if err != nil {
 		log.Printf("Error creating user in Firestore: %v", err)
+		// Clean up: delete the auth user if Firestore creation fails
+		firebase.Auth.DeleteUser(ctx, authUser.UID)
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
+	}
+
+	// Generate and send password reset email
+	actionCodeSettings := &auth.ActionCodeSettings{
+		URL:             "http://localhost:3000/login", // Replace with your frontend URL
+		HandleCodeInApp: false,
+	}
+
+	_, err = firebase.Auth.EmailVerificationLinkWithSettings(ctx, newUser.Email, actionCodeSettings)
+	if err != nil {
+		log.Printf("Error generating password reset link: %v", err)
+		// Don't return error as user is created successfully
+	} else {
+		log.Printf("Password reset email sent to: %s", newUser.Email)
 	}
 
 	w.WriteHeader(http.StatusCreated)
 }
 
+// Helper function to generate a secure temporary password
+func generateTempPassword(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	username := mux.Vars(r)["username"]
+	uid := mux.Vars(r)["uid"]
 
-	// Query user by email
-	iter := firebase.FirestoreClient.Collection("users").Where("email", "==", username).Documents(ctx)
-	defer iter.Stop()
-
-	doc, err := iter.Next()
-	if err == iterator.Done {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		log.Printf("Error querying user: %v", err)
-		http.Error(w, "Error retrieving user", http.StatusInternalServerError)
-		return
-	}
-
-	// Delete from Firebase Auth
-	var user models.User
-	if err := doc.DataTo(&user); err != nil {
-		log.Printf("Error parsing user data: %v", err)
-		http.Error(w, "Error parsing user data", http.StatusInternalServerError)
-		return
-	}
-
-	if err := firebase.Auth.DeleteUser(ctx, user.UID); err != nil {
+	// Delete from Firebase Auth first
+	if err := firebase.Auth.DeleteUser(ctx, uid); err != nil {
 		log.Printf("Error deleting user from Auth: %v", err)
-		http.Error(w, "Error deleting user", http.StatusInternalServerError)
+		http.Error(w, "Error deleting user from Auth", http.StatusInternalServerError)
 		return
 	}
 
 	// Delete from Firestore
-	_, err = doc.Ref.Delete(ctx)
+	_, err := firebase.FirestoreClient.Collection("users").Doc(uid).Delete(ctx)
 	if err != nil {
 		log.Printf("Error deleting user from Firestore: %v", err)
-		http.Error(w, "Error deleting user", http.StatusInternalServerError)
+		http.Error(w, "Error deleting user from Firestore", http.StatusInternalServerError)
+		return
+	}
+
+	// Return 204 No Content for successful deletion
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	uid := mux.Vars(r)["uid"]
+
+	var userData models.UpdateUserInfoAdmin
+	if err := json.NewDecoder(r.Body).Decode(&userData); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	// Update user in Firebase Auth
+	params := &auth.UserToUpdate{}
+	if userData.Email != nil {
+		params.Email(*userData.Email)
+	}
+	if userData.FirstName != nil || userData.LastName != nil {
+		firstName := ""
+		lastName := ""
+		if userData.FirstName != nil {
+			firstName = *userData.FirstName
+		}
+		if userData.LastName != nil {
+			lastName = *userData.LastName
+		}
+		params.DisplayName(firstName + " " + lastName)
+	}
+
+	_, err := firebase.Auth.UpdateUser(ctx, uid, params)
+	if err != nil {
+		log.Printf("Error updating user in Auth: %v", err)
+		http.Error(w, "Failed to update user in Auth", http.StatusInternalServerError)
+		return
+	}
+
+	// Update user in Firestore
+	docRef := firebase.FirestoreClient.Collection("users").Doc(uid)
+	updates := []firestore.Update{}
+
+	if userData.Email != nil {
+		updates = append(updates, firestore.Update{Path: "email", Value: *userData.Email})
+	}
+	if userData.FirstName != nil {
+		updates = append(updates, firestore.Update{Path: "first_name", Value: *userData.FirstName})
+	}
+	if userData.LastName != nil {
+		updates = append(updates, firestore.Update{Path: "last_name", Value: *userData.LastName})
+	}
+	if userData.Position != nil {
+		updates = append(updates, firestore.Update{Path: "position", Value: *userData.Position})
+	}
+	if userData.PhoneNumber != nil {
+		updates = append(updates, firestore.Update{Path: "phone_number", Value: *userData.PhoneNumber})
+	}
+	if userData.Occupation != nil {
+		updates = append(updates, firestore.Update{Path: "occupation", Value: *userData.Occupation})
+	}
+	if userData.IsActive != nil {
+		updates = append(updates, firestore.Update{Path: "is_active", Value: *userData.IsActive})
+	}
+	if userData.IsStaff != nil {
+		updates = append(updates, firestore.Update{Path: "is_staff", Value: *userData.IsStaff})
+	}
+	if userData.IsSuperuser != nil {
+		updates = append(updates, firestore.Update{Path: "is_superuser", Value: *userData.IsSuperuser})
+	}
+	if userData.Paid != nil {
+		updates = append(updates, firestore.Update{Path: "paid", Value: *userData.Paid})
+	}
+	if len(updates) > 0 {
+		_, err = docRef.Update(ctx, updates)
+		if err != nil {
+			log.Printf("Error updating user in Firestore: %v", err)
+			http.Error(w, "Failed to update user in database", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	uid := mux.Vars(r)["uid"]
+
+	// Get and verify the Firebase token
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		log.Printf("No authorization header")
+		http.Error(w, "No authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Remove "Bearer " prefix
+	idToken := strings.TrimPrefix(authHeader, "Bearer ")
+	token, err := firebase.Auth.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		log.Printf("Error verifying token: %v", err)
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user claims to check if admin or if user is updating their own info
+	claims := token.Claims
+	tokenUID := token.UID
+	isAdmin, _ := claims["admin"].(bool)
+
+	// Only allow if user is admin or updating their own info
+	if !isAdmin && tokenUID != uid {
+		log.Printf("Unauthorized access attempt: user %s trying to update password for %s", tokenUID, uid)
+		http.Error(w, "Unauthorized access", http.StatusForbidden)
+		return
+	}
+
+	var passwordData models.UpdatePassword
+	if err := json.NewDecoder(r.Body).Decode(&passwordData); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	if passwordData.NewPassword == "" {
+		http.Error(w, "New password cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	// Update password in Firebase Auth
+	params := (&auth.UserToUpdate{}).
+		Password(passwordData.NewPassword)
+
+	_, err = firebase.Auth.UpdateUser(ctx, uid, params)
+	if err != nil {
+		log.Printf("Error updating password: %v", err)
+		http.Error(w, "Failed to update password", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func UpdateUser(w http.ResponseWriter, r *http.Request) {
+func UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	username := mux.Vars(r)["username"]
+	uid := mux.Vars(r)["uid"]
 
-	var updatedInfo models.UpdateUserInfoAdmin
-	if err := json.NewDecoder(r.Body).Decode(&updatedInfo); err != nil {
+	var emailData struct {
+		NewEmail string `json:"newEmail"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&emailData); err != nil {
+		log.Printf("Error decoding request body: %v", err)
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
-	// Query user by email
-	iter := firebase.FirestoreClient.Collection("users").Where("email", "==", username).Documents(ctx)
-	defer iter.Stop()
-
-	doc, err := iter.Next()
-	if err == iterator.Done {
-		http.Error(w, "User not found", http.StatusNotFound)
+	if emailData.NewEmail == "" {
+		http.Error(w, "New email is required", http.StatusBadRequest)
 		return
 	}
+
+	// Update email in Firebase Auth
+	params := (&auth.UserToUpdate{}).
+		Email(emailData.NewEmail)
+
+	_, err := firebase.Auth.UpdateUser(ctx, uid, params)
 	if err != nil {
-		log.Printf("Error querying user: %v", err)
-		http.Error(w, "Error retrieving user", http.StatusInternalServerError)
+		log.Printf("Error updating email in Auth: %v", err)
+		http.Error(w, "Failed to update email in Auth", http.StatusInternalServerError)
 		return
 	}
 
-	// Prepare updates for Firestore
-	updates := make(map[string]interface{})
-	if updatedInfo.Email != nil {
-		updates["email"] = *updatedInfo.Email
-	}
-	if updatedInfo.PhoneNumber != nil {
-		updates["phone_number"] = *updatedInfo.PhoneNumber
-	}
-	if updatedInfo.Occupation != nil {
-		updates["occupation"] = *updatedInfo.Occupation
-	}
-	if updatedInfo.Position != nil {
-		updates["position"] = *updatedInfo.Position
-	}
-	if updatedInfo.IsActive != nil {
-		updates["is_active"] = *updatedInfo.IsActive
-	}
-	if updatedInfo.IsStaff != nil {
-		updates["is_staff"] = *updatedInfo.IsStaff
-	}
-	if updatedInfo.IsSuperuser != nil {
-		updates["is_superuser"] = *updatedInfo.IsSuperuser
-	}
-	if updatedInfo.FirstName != nil {
-		updates["first_name"] = *updatedInfo.FirstName
-	}
-	if updatedInfo.LastName != nil {
-		updates["last_name"] = *updatedInfo.LastName
-	}
-
-	// Update in Firestore
-	_, err = doc.Ref.Set(ctx, updates, firestore.MergeAll)
+	// Update email in Firestore
+	docRef := firebase.FirestoreClient.Collection("users").Doc(uid)
+	_, err = docRef.Update(ctx, []firestore.Update{
+		{Path: "email", Value: emailData.NewEmail},
+	})
 	if err != nil {
-		log.Printf("Error updating user in Firestore: %v", err)
-		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		log.Printf("Error updating email in Firestore: %v", err)
+		http.Error(w, "Failed to update email in Firestore", http.StatusInternalServerError)
 		return
 	}
 
-	// Update in Firebase Auth if necessary
-	var user models.User
-	if err := doc.DataTo(&user); err != nil {
-		log.Printf("Error parsing user data: %v", err)
-		http.Error(w, "Error parsing user data", http.StatusInternalServerError)
-		return
-	}
-
-	authUpdates := auth.UserToUpdate{}
-	if updatedInfo.Email != nil {
-		authUpdates.Email(*updatedInfo.Email)
-	}
-	if updatedInfo.Password != nil {
-		authUpdates.Password(*updatedInfo.Password)
-	}
-	if updatedInfo.FirstName != nil || updatedInfo.LastName != nil {
-		firstName := user.FirstName
-		lastName := user.LastName
-		if updatedInfo.FirstName != nil {
-			firstName = *updatedInfo.FirstName
-		}
-		if updatedInfo.LastName != nil {
-			lastName = *updatedInfo.LastName
-		}
-		authUpdates.DisplayName(firstName + " " + lastName)
-	}
-
-	_, err = firebase.Auth.UpdateUser(ctx, user.UID, &authUpdates)
-	if err != nil {
-		log.Printf("Error updating user in Auth: %v", err)
-		http.Error(w, "Failed to update user authentication", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Email updated successfully",
+	})
 }
