@@ -14,21 +14,33 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+type UserPreferences struct {
+	Theme          string         `firestore:"theme" json:"theme"`
+	WidgetSettings WidgetSettings `firestore:"widget_settings" json:"widget_settings"`
+}
+
+type WidgetSettings struct {
+	Orthodox  bool `firestore:"orthodox" json:"orthodox"`
+	Questions bool `firestore:"questions" json:"questions"`
+	Members   bool `firestore:"members" json:"members"`
+}
+
 // User represents the main user model, similar to Django's User model
 type User struct {
-	UID         string    `firestore:"uid" json:"uid"`
-	Email       string    `firestore:"email" json:"email"`
-	FirstName   string    `firestore:"first_name" json:"first_name"`
-	LastName    string    `firestore:"last_name" json:"last_name"`
-	IsActive    bool      `firestore:"is_active	 json:"is_active"`
-	IsStaff     bool      `firestore:"is_staff" json:"is_staff"`
-	IsSuperuser bool      `firestore:"is_superuser" json:"is_superuser"`
-	Position    string    `firestore:"position" json:"position"`
-	PhoneNumber string    `firestore:"phone_number" json:"phone_number"`
-	Occupation  string    `firestore:"occupation" json:"occupation"`
-	Paid        bool      `firestore:"paid" json:"paid"`
-	LastLogin   time.Time `firestore:"last_login" json:"last_login"`
-	DateJoined  time.Time `firestore:"date_joined" json:"date_joined"`
+	UID         string          `firestore:"uid" json:"uid"`
+	Email       string          `firestore:"email" json:"email"`
+	FirstName   string          `firestore:"first_name" json:"first_name"`
+	LastName    string          `firestore:"last_name" json:"last_name"`
+	IsActive    bool            `firestore:"is_active" json:"is_active"`
+	IsStaff     bool            `firestore:"is_staff" json:"is_staff"`
+	IsSuperuser bool            `firestore:"is_superuser" json:"is_superuser"`
+	Position    string          `firestore:"position" json:"position"`
+	PhoneNumber string          `firestore:"phone_number" json:"phone_number"`
+	Occupation  string          `firestore:"occupation" json:"occupation"`
+	Paid        bool            `firestore:"paid" json:"paid"`
+	LastLogin   time.Time       `firestore:"last_login" json:"last_login"`
+	DateJoined  time.Time       `firestore:"date_joined" json:"date_joined"`
+	Preferences UserPreferences `firestore:"preferences" json:"preferences"`
 }
 
 type UpdateUserInfo struct {
@@ -53,14 +65,18 @@ type UpdateUserInfoAdmin struct {
 }
 
 type MemberResponse struct {
-	UID         string `json:"uid"`
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_name"`
-	Email       string `json:"email"`
-	Position    string `json:"position"`
-	PhoneNumber string `json:"phone_number"`
-	Occupation  string `json:"occupation"`
-	Paid        bool   `json:"paid"`
+	UID         string          `json:"uid"`
+	FirstName   string          `json:"first_name"`
+	LastName    string          `json:"last_name"`
+	Email       string          `json:"email"`
+	Position    string          `json:"position"`
+	PhoneNumber string          `json:"phone_number"`
+	Occupation  string          `json:"occupation"`
+	Paid        bool            `json:"paid"`
+	IsActive    bool            `json:"is_active"`
+	IsStaff     bool            `json:"is_staff"`
+	IsSuperuser bool            `json:"is_superuser"`
+	Preferences UserPreferences `json:"preferences"`
 }
 
 type UpdatePassword struct {
@@ -261,6 +277,19 @@ func DeleteUser(uid string) error {
 	_, err = firebase.FirestoreClient.Collection("users").Doc(uid).Delete(ctx)
 	if err != nil {
 		return fmt.Errorf("error deleting Firestore document: %v", err)
+	}
+
+	return nil
+}
+
+func UpdateUserPreferences(uid string, preferences *UserPreferences) error {
+	ctx := context.Background()
+
+	_, err := firebase.FirestoreClient.Collection("users").Doc(uid).Set(ctx, map[string]interface{}{
+		"preferences": preferences,
+	}, firestore.MergeAll)
+	if err != nil {
+		return fmt.Errorf("error updating user preferences: %v", err)
 	}
 
 	return nil

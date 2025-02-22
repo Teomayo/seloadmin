@@ -47,7 +47,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// Required environment variables
-	requiredVars := []string{"DB_PATH", "JWT_SECRET", "SERVER_PORT"}
+	requiredVars := []string{"GOOGLE_APPLICATION_CREDENTIALS", "JWT_SECRET", "SERVER_PORT"}
 	for _, v := range requiredVars {
 		if os.Getenv(v) == "" {
 			return nil, fmt.Errorf("required environment variable %s is not set", v)
@@ -55,7 +55,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	config := &Config{
-		DBPath:     os.Getenv("DB_PATH"),
+		DBPath:     os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
 		JWTSecret:  os.Getenv("JWT_SECRET"),
 		ServerPort: os.Getenv("SERVER_PORT"),
 	}

@@ -70,6 +70,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   <Link to="/members" onClick={() => setIsSidebarVisible(true)}>
                     Members
                   </Link>
+                  <Link
+                    to="/contacts"
+                    onClick={() => setIsSidebarVisible(true)}
+                  >
+                    Contacts
+                  </Link>
                   {userRole === "staff" || userRole === "superuser" ? (
                     <Link to="/admin" onClick={() => setIsSidebarVisible(true)}>
                       Admin
@@ -93,6 +99,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </li>
               <li>
                 <Link to="/members">Members</Link>
+              </li>
+              <li>
+                <Link to="/contacts">Contacts</Link>
               </li>
               {userRole === "staff" || userRole === "superuser" ? (
                 <li>

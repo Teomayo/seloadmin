@@ -5,6 +5,7 @@ import {
   updateMemberInfo,
   updatePassword,
   getMemberInfo,
+  updateUserPreferences,
 } from "../services/api";
 import { auth } from "../services/firebase";
 
@@ -29,7 +30,6 @@ const Settings: React.FC = () => {
           members: true,
         };
   });
-
   const [userEmail, setUserEmail] = useState<string>("");
   const [userPhone, setUserPhone] = useState<string>("");
   const [userOccupation, setUserOccupation] = useState<string>("");
@@ -64,6 +64,23 @@ const Settings: React.FC = () => {
         setUserEmail(memberDetails[0].email);
         setUserPhone(memberDetails[0].phone_number);
         setUserOccupation(memberDetails[0].occupation);
+
+        // Set theme and widget settings from user preferences if they exist
+        if (memberDetails[0].preferences) {
+          const { theme, widget_settings } = memberDetails[0].preferences;
+          if (theme) {
+            setIsDarkMode(theme === "dark");
+            localStorage.setItem("theme", theme);
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+          if (widget_settings) {
+            setWidgetSettings(widget_settings);
+            localStorage.setItem(
+              "widgetSettings",
+              JSON.stringify(widget_settings)
+            );
+          }
+        }
       } catch (error) {
         console.error("Failed to fetch member details:", error);
       } finally {
@@ -89,21 +106,82 @@ const Settings: React.FC = () => {
       isDarkMode ? "dark" : "light"
     );
     localStorage.setItem("theme", isDarkMode ? "dark" : "light");
-  }, [isDarkMode]);
+
+    // Save theme preference to backend
+    const uid = localStorage.getItem("uid");
+    if (uid) {
+      const user = auth.currentUser;
+      if (user) {
+        updateUserPreferences(uid, {
+          theme: isDarkMode ? "dark" : "light",
+          widget_settings: widgetSettings,
+        }).catch((error) => {
+          console.error("Failed to save theme preference:", error);
+          // Don't revert the theme since it's already saved in localStorage
+        });
+      }
+    }
+  }, [isDarkMode, widgetSettings]);
 
   useEffect(() => {
     localStorage.setItem("widgetSettings", JSON.stringify(widgetSettings));
-  }, [widgetSettings]);
+
+    // Save widget settings to backend
+    const uid = localStorage.getItem("uid");
+    if (uid) {
+      const user = auth.currentUser;
+      if (user) {
+        updateUserPreferences(uid, {
+          theme: isDarkMode ? "dark" : "light",
+          widget_settings: widgetSettings,
+        }).catch((error) => {
+          console.error("Failed to save widget settings:", error);
+          // Settings are already saved in localStorage, so we don't need to revert
+        });
+      }
+    }
+  }, [widgetSettings, isDarkMode]);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
   };
 
   const toggleWidget = (widgetName: keyof WidgetSettings) => {
-    setWidgetSettings((prev) => ({
-      ...prev,
-      [widgetName]: !prev[widgetName],
-    }));
+    const newSettings = {
+      ...widgetSettings,
+      [widgetName]: !widgetSettings[widgetName],
+    };
+    setWidgetSettings(newSettings);
+    localStorage.setItem("widgetSettings", JSON.stringify(newSettings));
+
+    // Save to backend and broadcast change
+    const uid = localStorage.getItem("uid");
+    if (uid) {
+      const user = auth.currentUser;
+      if (user) {
+        updateUserPreferences(uid, {
+          theme: isDarkMode ? "dark" : "light",
+          widget_settings: newSettings,
+        })
+          .then(() => {
+            // Dispatch event for real-time updates
+            window.dispatchEvent(
+              new CustomEvent("widgetSettingsUpdated", {
+                detail: newSettings,
+              })
+            );
+          })
+          .catch((error) => {
+            console.error("Failed to save widget settings:", error);
+            // Revert the change if save fails
+            setWidgetSettings(widgetSettings);
+            localStorage.setItem(
+              "widgetSettings",
+              JSON.stringify(widgetSettings)
+            );
+          });
+      }
+    }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {

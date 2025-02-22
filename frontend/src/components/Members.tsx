@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../styles/Members.css"; // Create a CSS file for styling
 import { getMembers } from "../services/api";
-import { Member } from "../interfaces";
+import { Contact, Member } from "../interfaces";
 import { auth } from "../services/firebase";
 
 const Members: React.FC = () => {
@@ -56,6 +56,29 @@ const Members: React.FC = () => {
       member.paid.toString().includes(searchTerm.toLowerCase())
   );
 
+  // Sort the filtered contacts
+  const sortedMembers = [...filteredMembers].sort((a, b) => {
+    const aValue = a[sortColumn as keyof Member];
+    const bValue = b[sortColumn as keyof Member];
+
+    if (typeof aValue === "boolean" && typeof bValue === "boolean") {
+      return sortOrder === "asc"
+        ? aValue === bValue
+          ? 0
+          : aValue
+          ? 1
+          : -1
+        : aValue === bValue
+        ? 0
+        : aValue
+        ? -1
+        : 1;
+    }
+
+    const compareResult = String(aValue).localeCompare(String(bValue));
+    return sortOrder === "asc" ? compareResult : -compareResult;
+  });
+
   const handleToggle = (id: number) => {
     setExpandedMembers((prev) =>
       prev.includes(id)
@@ -85,7 +108,7 @@ const Members: React.FC = () => {
       ) : isMobile ? (
         // Mobile view with dropdown arrows
         <div>
-          {filteredMembers.map((member) => (
+          {sortedMembers.map((member) => (
             <div key={member.uid} className="member-card">
               <div
                 className="member-header"
@@ -180,7 +203,7 @@ const Members: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredMembers.map((member) => (
+            {sortedMembers.map((member) => (
               <tr key={member.uid}>
                 <td>{member.first_name}</td>
                 <td>{member.last_name}</td>

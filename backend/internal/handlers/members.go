@@ -7,9 +7,13 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"selo/internal/firebase"
 	"selo/internal/models"
 	"strings"
+	"time"
+
+	"net/smtp"
 
 	"cloud.google.com/go/firestore"
 	"firebase.google.com/go/v4/auth"
@@ -108,6 +112,10 @@ func GetMemberInfo(w http.ResponseWriter, r *http.Request) {
 			PhoneNumber: member.PhoneNumber,
 			Occupation:  member.Occupation,
 			Paid:        member.Paid,
+			IsActive:    member.IsActive,
+			IsStaff:     member.IsStaff,
+			IsSuperuser: member.IsSuperuser,
+			Preferences: member.Preferences,
 		})
 	}
 
@@ -349,6 +357,58 @@ func getUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	return &user, nil
 }
 
+// Add this helper function for sending emails
+func sendEmail(from, to, subject, body string) error {
+	// Get email configuration from environment variables
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
+	smtpUsername := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+
+	// Generate Message-ID
+	messageID := fmt.Sprintf("<%d.%s@%s>", time.Now().UnixNano(), to, smtpHost)
+
+	// Get current time for Date header
+	date := time.Now().Format("Mon, 02 Jan 2006 15:04:05 -0700")
+
+	// Compose email with proper headers
+	headers := map[string]string{
+		"From":         fmt.Sprintf("SELO Admin <%s>", from),
+		"To":           to,
+		"Subject":      subject,
+		"MIME-Version": "1.0",
+		"Content-Type": "text/plain; charset=UTF-8",
+		"Message-ID":   messageID,
+		"Date":         date,
+		"X-Mailer":     "SELO Admin System",
+	}
+
+	// Build message with headers
+	var message strings.Builder
+	for key, value := range headers {
+		message.WriteString(fmt.Sprintf("%s: %s\r\n", key, value))
+	}
+	message.WriteString("\r\n")
+	message.WriteString(body)
+
+	// Authentication
+	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
+
+	// Send email
+	err := smtp.SendMail(
+		smtpHost+":"+smtpPort,
+		auth,
+		from,
+		[]string{to},
+		[]byte(message.String()),
+	)
+	if err != nil {
+		return fmt.Errorf("error sending email: %v", err)
+	}
+
+	return nil
+}
+
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
@@ -387,21 +447,66 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate and send password reset email
+	// Generate verification link
 	actionCodeSettings := &auth.ActionCodeSettings{
-		URL:             "http://localhost:3000/login", // Replace with your frontend URL
-		HandleCodeInApp: false,
+		URL:             os.Getenv("FRONTEND_URL") + "/login", // Frontend URL for email verification
+		HandleCodeInApp: true,
 	}
 
 	_, err = firebase.Auth.EmailVerificationLinkWithSettings(ctx, newUser.Email, actionCodeSettings)
 	if err != nil {
-		log.Printf("Error generating password reset link: %v", err)
+		log.Printf("Error generating verification link: %v", err)
+		// Continue execution as user is created successfully
+	}
+
+	// Prepare email content with HTML-safe links
+	emailSubject := "Welcome to SELO - Account Creation"
+	verificationURL := os.Getenv("FRONTEND_URL") + "/verify-email"
+
+	emailBody := fmt.Sprintf(`
+Welcome to SELO!
+
+Your account has been created successfully. Here are your temporary credentials:
+
+Email: %s
+Temporary Password: %s
+
+To verify your email, please visit:
+%s
+
+After verifying your email, please log in at https://selo-admin.web.app and change your password immediately.
+
+Important Security Notice:
+- This is an automated message, please do not reply
+- Keep your credentials secure
+- Change your password upon first login
+- Never share your password with others
+
+If you did not request this account, please contact support immediately.
+
+Best regards,
+SELO Team
+
+This email was sent by SELO Admin System
+`, newUser.Email, tempPassword, verificationURL)
+
+	// Send welcome email
+	err = sendEmail(
+		os.Getenv("SMTP_FROM_EMAIL"),
+		newUser.Email,
+		emailSubject,
+		emailBody,
+	)
+	if err != nil {
+		log.Printf("Error sending welcome email: %v", err)
 		// Don't return error as user is created successfully
-	} else {
-		log.Printf("Password reset email sent to: %s", newUser.Email)
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "User created successfully. Check email for verification link.",
+		"uid":     authUser.UID,
+	})
 }
 
 // Helper function to generate a secure temporary password
@@ -621,4 +726,23 @@ func UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Email updated successfully",
 	})
+}
+
+func UpdateUserPreferences(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	uid := vars["uid"]
+
+	var preferences models.UserPreferences
+	if err := json.NewDecoder(r.Body).Decode(&preferences); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := models.UpdateUserPreferences(uid, &preferences); err != nil {
+		log.Printf("Error updating user preferences: %v", err)
+		http.Error(w, "Failed to update user preferences", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

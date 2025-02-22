@@ -7,6 +7,9 @@ interface Member {
   phone_number: string;
   occupation: string;
   paid: boolean;
+  is_active: boolean;
+  is_staff: boolean;
+  is_superuser: boolean;
 }
 
 interface User {
@@ -25,4 +28,35 @@ interface User {
   date_joined?: string;
 }
 
-export type { Member, User };
+interface Contact {
+  id: string;
+  full_name: string;
+  email: string;
+  phone_number: string;
+  website: string;
+  is_sponsor: boolean;
+  is_vendor: boolean;
+}
+
+interface Question {
+  id: string;
+  text: string;
+  choices: Array<{
+    text: string;
+    votes: number;
+  }>;
+  created_at: Date;
+  voted_users: string[];
+  is_archived?: boolean;
+}
+
+interface UserPreferences {
+  theme: string;
+  widget_settings: {
+    orthodox: boolean;
+    questions: boolean;
+    members: boolean;
+  };
+}
+
+export type { Member, User, Contact, Question, UserPreferences };

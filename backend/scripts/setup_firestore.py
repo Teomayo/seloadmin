@@ -9,7 +9,7 @@ def init_firebase(use_emulator=False):
     """Initialize Firebase Admin SDK with option for emulator"""
     # Get the project root directory
     project_root = Path(__file__).parent.parent.parent
-    
+    print(project_root)
     # Construct the path to the service account file
     cred_path = os.path.join(project_root, "selo-service-account.json")
     
@@ -23,13 +23,30 @@ def init_firebase(use_emulator=False):
         os.environ["FIREBASE_AUTH_EMULATOR_HOST"] = "127.0.0.1:9099"
         print(f"FIRESTORE_EMULATOR_HOST: {os.environ.get('FIRESTORE_EMULATOR_HOST')}")
         print(f"FIREBASE_AUTH_EMULATOR_HOST: {os.environ.get('FIREBASE_AUTH_EMULATOR_HOST')}")
-    
+    else:
+        print("Setting up Firebase production...")
+        # Clear any existing Firebase apps and emulator settings
+        if firebase_admin._apps:
+            firebase_admin.delete_app(firebase_admin.get_app())
+        
+        # Clear emulator environment variables
+        if "FIRESTORE_EMULATOR_HOST" in os.environ:
+            del os.environ["FIRESTORE_EMULATOR_HOST"]
+        if "FIREBASE_AUTH_EMULATOR_HOST" in os.environ:
+            del os.environ["FIREBASE_AUTH_EMULATOR_HOST"]
+
     # Initialize Firebase
     cred = credentials.Certificate(cred_path)
     app = firebase_admin.initialize_app(cred)
+
+    store = firestore.client()
+    # check if app is initialized
+    if not store:
+        print("Failed to initialize Firebase")
+        return None
     print(f"Firebase initialized in {'emulator' if use_emulator else 'production'} mode")
     
-    return firestore.client()
+    return store
 
 def create_test_users(db):
     """Create test users in both Firebase Auth and Firestore"""
@@ -171,6 +188,48 @@ def create_test_questions(db):
         except Exception as e:
             print(f"Error creating question '{question_data['text']}': {e}")
 
+def create_test_contacts(db):
+    """Create test contacts in Firestore"""
+    contacts = [
+        {
+            'full_name': 'John Doe',
+            'email': 'john.doe@example.com',
+            'phone_number': '+1234567890',
+            'website': 'https://www.example.com',
+            'is_sponsor': True,
+            'is_vendor': False
+        },
+        {
+            'full_name': 'Jane Smith',
+            'email': 'jane.smith@example.com',
+            'phone_number': '+1234567891',
+            'website': 'https://www.example.com',
+            'is_sponsor': False,
+            'is_vendor': True
+        }
+    ]
+
+    print("\nCreating test contacts...")
+    for contact_data in contacts:   
+        try:
+            contact_doc = {
+                'full_name': contact_data['full_name'],
+                'email': contact_data['email'],
+                'phone_number': contact_data['phone_number'],
+                'website': contact_data['website'],
+                'is_sponsor': contact_data['is_sponsor'],
+                'is_vendor': contact_data['is_vendor']
+            }
+            
+            # Add contact to Firestore
+            contact_ref = db.collection('contacts').document()
+            contact_ref.set(contact_doc)
+            print(f"Created contact: {contact_data['full_name']}")
+            
+        except Exception as e:
+            print(f"Error creating contact '{contact_data['full_name']}': {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(description='Setup Firestore with test data')
     parser.add_argument('--emulator', action='store_true', 
@@ -184,7 +243,7 @@ def main():
         # Create test data
         create_test_users(db)
         create_test_questions(db)
-        
+        create_test_contacts(db)
         print("\nFirestore setup completed successfully!")
         
     except Exception as e:

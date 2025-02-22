@@ -1,9 +1,6 @@
 # Use the official Golang image to create a build artifact.
 FROM golang:latest AS builder
 
-ARG TARGETOS
-ARG TARGETARCH
-
 # Set up root app directory
 WORKDIR /app
 
@@ -14,13 +11,13 @@ COPY .env .env
 COPY backend/ ./
 
 # Copy Firebase service account JSON
-COPY selo-b7d60-firebase-adminsdk-fbsvc-ddd5d5cb4c.json ./
+COPY selo-service-account.json ./
 
 # Install dependencies and tidy up the go.mod and go.sum files
 RUN go mod tidy
 
 # Build the binary
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -mod=readonly -v -o server
+RUN go build -mod=readonly -v -o server
 
 # Use debian slim for runtime
 FROM debian:bookworm-slim
@@ -41,10 +38,7 @@ RUN chmod +x ./server
 COPY --from=builder /app/.env ./.env
 
 # Copy the Firebase service account JSON
-COPY --from=builder /app/selo-b7d60-firebase-adminsdk-fbsvc-ddd5d5cb4c.json ./
-
-# Expose the port
-EXPOSE 8080
+COPY --from=builder /app/selo-service-account.json ./
 
 # Run the web service on container startup
 CMD ["./server"]

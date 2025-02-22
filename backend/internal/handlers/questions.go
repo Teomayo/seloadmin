@@ -30,6 +30,7 @@ type QuestionResponse struct {
 	CreatedAt  time.Time        `json:"created_at"`
 	Choices    []ChoiceResponse `json:"choices"`
 	VotedUsers []string         `json:"voted_users"`
+	IsArchived bool             `json:"is_archived"`
 }
 
 func GetQuestions(w http.ResponseWriter, r *http.Request) {
@@ -55,9 +56,10 @@ func GetQuestions(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Raw Firestore data: %+v", doc.Data())
 
 		var question struct {
-			Text      string    `firestore:"text,omitempty"`
-			CreatedAt time.Time `firestore:"created_at,omitempty"`
-			Choices   []struct {
+			Text       string    `firestore:"text,omitempty"`
+			CreatedAt  time.Time `firestore:"created_at,omitempty"`
+			IsArchived bool      `firestore:"is_archived,omitempty"`
+			Choices    []struct {
 				Text  string `firestore:"text"`
 				Votes int64  `firestore:"votes"`
 			} `firestore:"choices,omitempty"`
@@ -86,6 +88,7 @@ func GetQuestions(w http.ResponseWriter, r *http.Request) {
 			CreatedAt:  question.CreatedAt,
 			Choices:    choiceResponses,
 			VotedUsers: question.VotedUsers,
+			IsArchived: question.IsArchived,
 		})
 	}
 
@@ -300,4 +303,149 @@ type customError struct {
 
 func (e *customError) Error() string {
 	return e.msg
+}
+
+func CreateQuestion(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+
+	// Parse request body
+	var question struct {
+		Text      string    `json:"text"`
+		Choices   []Choice  `json:"choices"`
+		CreatedAt time.Time `json:"created_at"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&question); err != nil {
+		log.Printf("Error decoding request body: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Create new question document
+	docRef, _, err := firebase.FirestoreClient.Collection("questions").Add(ctx, map[string]interface{}{
+		"text":        question.Text,
+		"choices":     question.Choices,
+		"created_at":  question.CreatedAt,
+		"voted_users": []string{},
+		"is_archived": false,
+	})
+	if err != nil {
+		log.Printf("Error creating question: %v", err)
+		http.Error(w, "Error creating question", http.StatusInternalServerError)
+		return
+	}
+
+	response := QuestionResponse{
+		ID:         docRef.ID,
+		Text:       question.Text,
+		CreatedAt:  question.CreatedAt,
+		Choices:    make([]ChoiceResponse, len(question.Choices)),
+		VotedUsers: []string{},
+	}
+
+	for i, choice := range question.Choices {
+		response.Choices[i] = ChoiceResponse{
+			ID:         fmt.Sprintf("%s_%d", docRef.ID, i),
+			Text:       choice.Text,
+			Votes:      0,
+			QuestionID: docRef.ID,
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+func UpdateQuestion(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// Parse request body
+	var updates struct {
+		Text    string   `json:"text"`
+		Choices []Choice `json:"choices"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
+		log.Printf("Error decoding request body: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Update question document
+	_, err := firebase.FirestoreClient.Collection("questions").Doc(id).Set(ctx, map[string]interface{}{
+		"text":    updates.Text,
+		"choices": updates.Choices,
+	}, firestore.MergeAll)
+	if err != nil {
+		log.Printf("Error updating question: %v", err)
+		http.Error(w, "Error updating question", http.StatusInternalServerError)
+		return
+	}
+
+	// Get updated document
+	doc, err := firebase.FirestoreClient.Collection("questions").Doc(id).Get(ctx)
+	if err != nil {
+		log.Printf("Error getting updated question: %v", err)
+		http.Error(w, "Error retrieving updated question", http.StatusInternalServerError)
+		return
+	}
+
+	var question struct {
+		Text       string    `firestore:"text"`
+		CreatedAt  time.Time `firestore:"created_at"`
+		Choices    []Choice  `firestore:"choices"`
+		VotedUsers []string  `firestore:"voted_users"`
+	}
+
+	if err := doc.DataTo(&question); err != nil {
+		log.Printf("Error parsing question data: %v", err)
+		http.Error(w, "Error parsing question data", http.StatusInternalServerError)
+		return
+	}
+
+	response := QuestionResponse{
+		ID:         doc.Ref.ID,
+		Text:       question.Text,
+		CreatedAt:  question.CreatedAt,
+		Choices:    make([]ChoiceResponse, len(question.Choices)),
+		VotedUsers: question.VotedUsers,
+	}
+
+	for i, choice := range question.Choices {
+		response.Choices[i] = ChoiceResponse{
+			ID:         fmt.Sprintf("%s_%d", doc.Ref.ID, i),
+			Text:       choice.Text,
+			Votes:      int(choice.Votes),
+			QuestionID: doc.Ref.ID,
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func ArchiveQuestion(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	// Update is_archived field
+	_, err := firebase.FirestoreClient.Collection("questions").Doc(id).Set(ctx, map[string]interface{}{
+		"is_archived": true,
+	}, firestore.MergeAll)
+	if err != nil {
+		log.Printf("Error archiving question: %v", err)
+		http.Error(w, "Error archiving question", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type Choice struct {
+	Text  string `json:"text" firestore:"text"`
+	Votes int64  `json:"votes" firestore:"votes"`
 }

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { User } from "../interfaces";
+import { User, Contact, Question, UserPreferences } from "../interfaces";
 import { auth } from "./firebase"; // Import auth directly
 import {
   signInWithEmailAndPassword,
@@ -9,8 +9,8 @@ import {
 } from "firebase/auth";
 
 let API_URL: string;
-let BASE_URL: string =
-  process.env.REACT_APP_BASE_URL || "http://localhost:3000"; // Set a default BASE_URL
+let BASE_URL: string;
+
 // Add persistence for auth state
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -28,9 +28,36 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
+// Set URLs based on environment
+if (process.env.REACT_APP_ENV_MODE === "development") {
+  API_URL =
+    `${process.env.REACT_APP_DEV_BACKEND_URL}/api/` ||
+    "http://localhost:8080/api/";
+  BASE_URL = process.env.REACT_APP_DEV_BACKEND_URL || "http://localhost:8080/";
+} else {
+  API_URL =
+    `${process.env.REACT_APP_PROD_BACKEND_URL}/api/` ||
+    "https://selo-admin-1060694023655.us-central1.run.app/api/";
+  BASE_URL =
+    process.env.REACT_APP_PROD_BACKEND_URL ||
+    "https://selo-admin-1060694023655.us-central1.run.app/";
+}
+
+if (!API_URL || !BASE_URL) {
+  console.warn("Environment variables not properly loaded!");
+}
+
+console.log("Environment Mode:", process.env.REACT_APP_ENV_MODE);
+console.log("API_URL:", API_URL);
+console.log("BASE_URL:", BASE_URL);
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: process.env.REACT_APP_DEV_BACKEND_URL || "http://localhost:8080",
+  baseURL:
+    process.env.REACT_APP_ENV_MODE === "development"
+      ? process.env.REACT_APP_DEV_BACKEND_URL || "http://localhost:8080"
+      : process.env.REACT_APP_PROD_BACKEND_URL ||
+        "https://selo-admin-1060694023655.us-central1.run.app",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -78,28 +105,6 @@ api.interceptors.response.use(
   }
 );
 
-if (process.env.REACT_APP_ENV_MODE === "development") {
-  API_URL =
-    `${process.env.REACT_APP_DEV_BACKEND_URL}/api/` ||
-    "http://localhost:8080/api/";
-  BASE_URL = process.env.REACT_APP_DEV_BACKEND_URL || "http://localhost:8080/";
-} else {
-  API_URL =
-    `${process.env.REACT_APP_PROD_BACKEND_URL}/api/` ||
-    "https://selo-admin-1060694023655.us-central1.run.app/api/";
-  BASE_URL =
-    process.env.REACT_APP_PROD_BACKEND_URL ||
-    "https://selo-admin-1060694023655.us-central1.run.app/";
-}
-
-if (!API_URL || !BASE_URL) {
-  console.warn("Environment variables not properly loaded!");
-}
-
-console.log("Environment Mode:", process.env.REACT_APP_ENV_MODE);
-console.log("API_URL:", API_URL);
-console.log("BASE_URL:", BASE_URL);
-
 export const login = async (email: string, password: string) => {
   try {
     const userCredential = await signInWithEmailAndPassword(
@@ -107,51 +112,59 @@ export const login = async (email: string, password: string) => {
       email,
       password
     );
-    const idToken = await userCredential.user.getIdToken();
+    const user = userCredential.user;
 
-    // Set the token in the authorization header
-    api.defaults.headers.common["Authorization"] = `Bearer ${idToken}`;
-
-    try {
-      const response = await api.get(`${API_URL}profile`);
-      const userRole = response.data.is_superuser
-        ? "superuser"
-        : response.data.is_staff
-        ? "staff"
-        : "user";
-
-      // Store user info in localStorage
-      localStorage.setItem("email", email);
-      localStorage.setItem("userRole", userRole);
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("uid", userCredential.user.uid);
-
-      return {
-        token: idToken,
-        user_role: userRole,
-        isAuthenticated: true,
-        ...response.data,
-      };
-    } catch (error) {
-      console.warn("Could not fetch user profile, using basic role:", error);
-      const userRole = "user";
-      localStorage.setItem("email", email);
-      localStorage.setItem("userRole", userRole);
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("uid", userCredential.user.uid);
-
-      return {
-        token: idToken,
-        user_role: userRole,
-        isAuthenticated: true,
-        email: email,
-      };
+    if (!user) {
+      throw new Error("Login failed - no user returned");
     }
+
+    localStorage.setItem("uid", user.uid);
+    localStorage.setItem("email", email);
+    localStorage.setItem("isAuthenticated", "true");
+
+    // Fetch member info which includes preferences
+    try {
+      const memberDetails = await getMemberInfo(user.uid);
+      console.log(memberDetails);
+      if (memberDetails[0].is_superuser) {
+        localStorage.setItem("userRole", "superuser");
+      } else if (memberDetails[0].is_staff) {
+        localStorage.setItem("userRole", "staff");
+      } else {
+        localStorage.setItem("userRole", "member");
+      }
+      if (memberDetails && memberDetails[0]?.preferences) {
+        const { theme, widget_settings } = memberDetails[0].preferences;
+        // Set theme
+        if (theme) {
+          localStorage.setItem("theme", theme);
+          document.documentElement.setAttribute("data-theme", theme);
+        }
+
+        // Set widget settings
+        if (widget_settings) {
+          console.log("Setting widget settings from login:", widget_settings);
+          localStorage.setItem(
+            "widgetSettings",
+            JSON.stringify(widget_settings)
+          );
+
+          // Dispatch event for real-time updates
+          window.dispatchEvent(
+            new CustomEvent("widgetSettingsUpdated", {
+              detail: widget_settings,
+            })
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user preferences:", error);
+      // Don't throw here - we still want to complete the login
+    }
+
+    return user;
   } catch (error: any) {
     console.error("Login error:", error);
-    if (error.code === "auth/invalid-credential") {
-      throw new Error("Invalid email or password");
-    }
     throw error;
   }
 };
@@ -323,7 +336,6 @@ export const getUsers = async (): Promise<User[]> => {
       throw new Error("No data received from server");
     }
 
-    console.log("Raw user data:", response.data); // Debug log
     return response.data;
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -443,6 +455,78 @@ export const deleteUser = async (uid: string) => {
     return true; // Return success boolean instead of expecting data
   } catch (error) {
     console.error("Error deleting user:", error);
+    throw error;
+  }
+};
+
+export const getContacts = async (): Promise<Contact[]> => {
+  const response = await api.get(`${API_URL}contacts`);
+  return response.data;
+};
+
+export const createContact = async (
+  contactData: Omit<Contact, "id">
+): Promise<Contact> => {
+  const response = await api.post(`${API_URL}contacts`, contactData);
+  return response.data;
+};
+
+export const updateContact = async (
+  id: string,
+  contactData: Partial<Contact>
+): Promise<Contact> => {
+  const response = await api.put(`${API_URL}contacts/${id}`, contactData);
+  return response.data;
+};
+
+export const deleteContact = async (id: string): Promise<void> => {
+  await api.delete(`${API_URL}contacts/${id}`);
+};
+
+// Question Management
+export const createQuestion = async (
+  questionData: Omit<Question, "id">
+): Promise<Question> => {
+  const response = await api.post(`${API_URL}questions`, questionData);
+  return response.data;
+};
+
+export const updateQuestion = async (
+  id: string,
+  questionData: Partial<Question>
+): Promise<Question> => {
+  const response = await api.put(`${API_URL}questions/${id}`, questionData);
+  return response.data;
+};
+
+export const archiveQuestion = async (id: string): Promise<void> => {
+  await api.put(`${API_URL}questions/${id}/archive`);
+};
+
+export const updateUserPreferences = async (uid: string, preferences: any) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error("No authenticated user");
+    }
+
+    // Get the user's ID token
+    const idToken = await user.getIdToken();
+
+    const response = await api.put(
+      `${API_URL}users/${uid}/preferences`,
+      preferences,
+      {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      }
+    );
+
+    // Return true for success, don't try to parse response as JSON
+    return true;
+  } catch (error) {
+    console.error("Error updating user preferences:", error);
     throw error;
   }
 };

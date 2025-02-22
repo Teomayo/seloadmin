@@ -13,7 +13,7 @@ connect.sh
 /coverage
 
 # production
-/build
+/frontend/build
 
 # misc
 .env.local
@@ -96,5 +96,4 @@ backend/scripts/users.yaml
 upload.sh
 install.sh
 .rsync-exclude
-
 *-service-account.json

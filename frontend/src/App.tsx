@@ -7,11 +7,25 @@ import Login from "./components/Login";
 import "./styles/theme.css";
 import Members from "./components/Members";
 import AdminPanel from "./components/AdminPanel";
+import Contacts from "./components/Contacts";
+import { auth } from "./services/firebase";
 
 const App: React.FC = () => {
   useEffect(() => {
+    // Initialize theme from localStorage
     const savedTheme = localStorage.getItem("theme") || "dark";
     document.documentElement.setAttribute("data-theme", savedTheme);
+
+    // Set up auth state listener
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        const theme = localStorage.getItem("theme");
+        localStorage.clear();
+        if (theme) localStorage.setItem("theme", theme);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Check if user is authenticated
@@ -30,9 +44,8 @@ const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route
-        path="/dashboard"
+        path="/"
         element={
           <ProtectedRoute>
             <Layout>
@@ -71,8 +84,16 @@ const App: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      {/* Redirect any unknown routes to dashboard */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route
+        path="/contacts"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Contacts />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };

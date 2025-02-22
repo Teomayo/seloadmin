@@ -15,6 +15,7 @@ interface Question {
   created_at: string;
   choices: Choice[];
   voted_users: string[];
+  is_archived?: boolean;
 }
 
 const stopPropogation = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -43,6 +44,11 @@ const QuestionsWidget: React.FC = () => {
 
         if (Array.isArray(result)) {
           const validQuestions = result.filter((question: Question) => {
+            // Skip archived questions
+            if (question.is_archived) {
+              return false;
+            }
+
             if (!question.choices || !Array.isArray(question.choices)) {
               console.warn(`Question ${question.id} has no choices array`);
               return false;

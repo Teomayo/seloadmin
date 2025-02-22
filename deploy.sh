@@ -17,7 +17,7 @@ check_docker() {
 
 # Function to display usage
 usage() {
-    echo -e "${YELLOW}Usage: $0 [start|stop|restart|status|logs|clean|frontend|backend]${NC}"
+    echo -e "${YELLOW}Usage: $0 [start|stop|restart|status|logs|clean|frontend|backend|cloud]${NC}"
     echo "Commands:"
     echo "  start   - Start the application containers"
     echo "  stop    - Stop the application containers"
@@ -26,7 +26,7 @@ usage() {
     echo "  logs    - Show logs (use -f flag to follow)"
     echo "  clean   - Stop containers and remove volumes"
     echo "  frontend - Build and deploy frontend"
-    echo "  backend - Build and deploy backend"
+    echo "  cloud   - Build and deploy to Google Cloud Run"
 }
 
 # Check if .env file exists
@@ -58,13 +58,51 @@ frontend() {
     cd ..
 }
 
-backend() {
-    echo -e "${GREEN}building and deploying backend...${NC}"
+cloud() {
+    echo -e "${GREEN}building and deploying to cloud...${NC}"
     # ask user if they set the environment to production
     read -p "Did you set the environment to production? (y/n): " PROD
     if [ "$PROD" == "y" ]; then
-        gcloud builds submit --tag gcr.io/$PROJECT_ID/selo-admin
-        gcloud run deploy --image gcr.io/$PROJECT_ID/selo-admin
+        # Configure Docker to use gcloud as a credential helper
+        echo -e "${GREEN}Configuring Docker authentication...${NC}"
+        gcloud auth configure-docker gcr.io
+        
+        # Get the latest commit hash
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        
+        echo -e "${GREEN}Building with docker buildx for linux/amd64...${NC}"
+        docker buildx build -t gcr.io/$PROJECT_ID/selo-admin:$COMMIT_HASH --platform linux/amd64 .
+        
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Failed to build image${NC}"
+            exit 1
+        fi
+
+        echo -e "${GREEN}Pushing to Artifact Registry...${NC}"
+        docker push gcr.io/$PROJECT_ID/selo-admin:$COMMIT_HASH
+        
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Failed to push image${NC}"
+            exit 1
+        fi
+
+        echo -e "${GREEN}Deploying to Cloud Run...${NC}"
+        gcloud run deploy selo-admin \
+            --image gcr.io/$PROJECT_ID/selo-admin:$COMMIT_HASH \
+            --project=$PROJECT_ID \
+            --region=us-central1 \
+            --platform=managed \
+            --allow-unauthenticated \
+            --timeout=300 \
+            --set-env-vars="FIRESTORE_TIMEOUT=60" \
+            --memory=1Gi
+        
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}Successfully deployed to Cloud Run${NC}"
+        else
+            echo -e "${RED}Failed to deploy${NC}"
+            exit 1
+        fi
     else
         echo -e "${RED}Please set the environment to production${NC}"
         exit 1
@@ -139,6 +177,9 @@ frontend)
     ;;
 backend)
     backend
+    ;;
+cloud)
+    cloud
     ;;
 *)
     usage

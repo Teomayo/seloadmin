@@ -13,36 +13,78 @@ const Dashboard: React.FC = () => {
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
   const [mounted, setMounted] = useState(false);
   const [widgetSettings, setWidgetSettings] = useState(() => {
-    const savedSettings = localStorage.getItem("widgetSettings");
-    return savedSettings
-      ? JSON.parse(savedSettings)
-      : {
-          orthodox: true,
-          questions: true,
-          members: true,
-        };
+    try {
+      const savedSettings = localStorage.getItem("widgetSettings");
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        console.log("Initial widget settings from localStorage:", parsed);
+        return parsed;
+      }
+    } catch (error) {
+      console.error("Error parsing widget settings:", error);
+    }
+    return {
+      orthodox: true,
+      questions: true,
+      members: true,
+    };
   });
 
   useEffect(() => {
     setMounted(true);
     const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobileView(mobile);
+      setIsMobileView(window.innerWidth <= 768);
     };
 
+    const handleWidgetSettingsUpdate = (event: CustomEvent<any>) => {
+      console.log("Widget settings update event received:", event.detail);
+      setWidgetSettings(event.detail);
+    };
+
+    // Check for settings in localStorage on mount
+    const savedSettings = localStorage.getItem("widgetSettings");
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        console.log("Loading saved widget settings on mount:", parsed);
+        setWidgetSettings(parsed);
+      } catch (error) {
+        console.error("Error parsing saved widget settings:", error);
+      }
+    }
+
     window.addEventListener("resize", handleResize);
-    handleResize(); // Initial check
+    window.addEventListener(
+      "widgetSettingsUpdated",
+      handleWidgetSettingsUpdate as EventListener
+    );
+
+    // Initial resize check
+    handleResize();
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener(
+        "widgetSettingsUpdated",
+        handleWidgetSettingsUpdate as EventListener
+      );
     };
   }, []);
 
+  // Add effect to sync with localStorage changes
   useEffect(() => {
-    const handleStorageChange = () => {
-      const savedSettings = localStorage.getItem("widgetSettings");
-      if (savedSettings) {
-        setWidgetSettings(JSON.parse(savedSettings));
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "widgetSettings" && e.newValue) {
+        try {
+          const newSettings = JSON.parse(e.newValue);
+          console.log("Widget settings changed in localStorage:", newSettings);
+          setWidgetSettings(newSettings);
+        } catch (error) {
+          console.error(
+            "Error parsing widget settings from storage event:",
+            error
+          );
+        }
       }
     };
 
