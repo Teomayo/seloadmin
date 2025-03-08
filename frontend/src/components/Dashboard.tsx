@@ -12,6 +12,18 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 const Dashboard: React.FC = () => {
   const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
   const [mounted, setMounted] = useState(false);
+  const [layouts, setLayouts] = useState(() => {
+    try {
+      const savedLayouts = localStorage.getItem("dashboardLayouts");
+      if (savedLayouts) {
+        return JSON.parse(savedLayouts);
+      }
+    } catch (error) {
+      console.error("Error parsing saved layouts:", error);
+    }
+    return null;
+  });
+
   const [widgetSettings, setWidgetSettings] = useState(() => {
     try {
       const savedSettings = localStorage.getItem("widgetSettings");
@@ -93,6 +105,8 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const getActiveLayouts = () => {
+    if (layouts) return layouts;
+
     const activeWidgets = [];
     if (widgetSettings.orthodox)
       activeWidgets.push({ i: "orthodox", x: 0, y: 0, w: 4, h: 6 });
@@ -101,6 +115,12 @@ const Dashboard: React.FC = () => {
     if (widgetSettings.members)
       activeWidgets.push({ i: "members", x: 4, y: 3, w: 2, h: 2 });
     return { lg: activeWidgets };
+  };
+
+  const handleLayoutChange = (layout: any, layouts: any) => {
+    // Save the layouts to localStorage
+    localStorage.setItem("dashboardLayouts", JSON.stringify(layouts));
+    setLayouts(layouts);
   };
 
   if (!mounted) return null;
@@ -127,6 +147,14 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Calculate maxRows based on viewport height
+  const viewportHeight = window.innerHeight;
+  const rowHeight = 100;
+  const marginY = 16;
+  const maxRows = Math.floor(
+    (viewportHeight - marginY) / (rowHeight + marginY)
+  );
+
   return (
     <div className="dashboard">
       <ResponsiveGridLayout
@@ -135,9 +163,13 @@ const Dashboard: React.FC = () => {
         breakpoints={{ lg: 1200 }}
         cols={{ lg: 12 }}
         rowHeight={100}
-        isDraggable={false} // Disable dragging for now. TODO: Enable this when we have a better way to handle dragging and voting.
+        isDraggable={true}
         isResizable={!isMobileView}
         margin={[16, 16]}
+        maxRows={maxRows}
+        preventCollision={true}
+        onLayoutChange={handleLayoutChange}
+        compactType="vertical"
       >
         {widgetSettings.orthodox && (
           <div key="orthodox" className="widget-container">
