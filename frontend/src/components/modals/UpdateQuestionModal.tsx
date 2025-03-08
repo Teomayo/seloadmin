@@ -159,16 +159,16 @@ const UpdateQuestionModal: React.FC<UpdateQuestionModalProps> = ({
           )}
 
           <div className="d-flex justify-content-end gap-2">
-            <Button variant="secondary" onClick={onHide}>
+            <button type="button" className="admin-button" onClick={onHide}>
               Cancel
-            </Button>
-            <Button
-              variant="primary"
+            </button>
+            <button
               type="submit"
-              disabled={!selectedQuestionId || isSubmitting}
+              className="admin-button"
+              disabled={isSubmitting}
             >
               {isSubmitting ? "Updating..." : "Update Question"}
-            </Button>
+            </button>
           </div>
         </Form>
       </Modal.Body>

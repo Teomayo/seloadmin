@@ -52,9 +52,29 @@ start() {
 }
 
 frontend() {
-    echo -e "${GREEN}building and deploying frontend...${NC}"
+    echo -e "${GREEN}Building and deploying frontend...${NC}"
     cd frontend
+    
+    # Cleanup steps
+    echo -e "${YELLOW}Cleaning up previous build artifacts...${NC}"
+    rm -rf build/                  # Remove build directory
+    rm -rf node_modules/.cache/    # Remove cache
+    rm -rf .firebase/             # Remove Firebase cache
+    rm -rf coverage/              # Remove test coverage reports
+    rm -rf dist/                  # Remove distribution files if any
+    
+    # Optional: clean npm cache
+    echo -e "${YELLOW}Cleaning npm cache...${NC}"
+    npm cache clean --force
+    
+    # Install dependencies fresh
+    echo -e "${GREEN}Installing dependencies...${NC}"
+    npm install
+    
+    # Deploy
+    echo -e "${GREEN}Deploying to Firebase...${NC}"
     npm run deploy
+    
     cd ..
 }
 

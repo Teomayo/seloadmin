@@ -38,24 +38,29 @@ const AdminPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const fetchUsers = async () => {
     try {
-      setLoading(true);
-      setError(null);
       const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error("No authenticated user");
       }
       const data = await getUsers();
       setUsers(data);
+      setError(null); // Clear any previous errors
+      setRetryCount(0); // Reset retry count on success
     } catch (error) {
       console.error("Error fetching users:", error);
-      setError(
-        "Failed to load users. Please ensure you are logged in with admin privileges."
-      );
-    } finally {
-      setLoading(false);
+      if (retryCount < 3) {
+        // Only retry 3 times
+        setRetryCount((prev) => prev + 1);
+        setTimeout(() => fetchUsers(), 1000); // Retry after 1 second
+      } else {
+        setError(
+          "Failed to load users. Please ensure you are logged in with admin privileges."
+        );
+      }
     }
   };
 
@@ -80,12 +85,27 @@ const AdminPanel: React.FC = () => {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    let isMounted = true;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) return;
+
       setIsAuthenticated(!!user);
       if (user) {
-        fetchUsers();
-        fetchContacts();
-        fetchQuestions();
+        setLoading(true);
+        try {
+          // Wait for a small delay to ensure Firebase is ready
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Fetch all data in parallel
+          await Promise.all([fetchUsers(), fetchContacts(), fetchQuestions()]);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          setError("Error loading admin panel data");
+        } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
+        }
       } else {
         setError("Please log in to access the admin panel");
         setLoading(false);
@@ -98,16 +118,23 @@ const AdminPanel: React.FC = () => {
     }
 
     return () => {
+      isMounted = false;
       unsubscribe();
       document.body.classList.remove("sb-sidenav-toggled");
     };
   }, []);
 
   // Refresh data when modals are closed
-  const handleModalClose = () => {
-    fetchUsers();
-    fetchContacts();
-    fetchQuestions();
+  const handleModalClose = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([fetchUsers(), fetchContacts(), fetchQuestions()]);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      setError("Failed to refresh data");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading)

@@ -6,6 +6,8 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  updateProfile,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 
 let API_URL: string;
@@ -172,7 +174,6 @@ export const login = async (email: string, password: string) => {
 export const createUser = async (userData: {
   username: string;
   email: string;
-  password: string;
   first_name: string;
   last_name: string;
   position?: string;
@@ -186,13 +187,11 @@ export const createUser = async (userData: {
   date_joined?: string;
 }) => {
   try {
-    // Create user in Firebase Auth and Firestore
+    // Send user data to backend to handle both Auth and Firestore creation
     const response = await api.post(`${API_URL}create-user`, userData);
 
-    // The backend will handle:
-    // 1. Creating the user in Firebase Auth
-    // 2. Creating the user document in Firestore
-    // 3. Setting up custom claims for staff/superuser status
+    // Add a small delay to ensure Firestore write has propagated
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     return response.data;
   } catch (error) {

@@ -62,7 +62,15 @@ def create_test_users(db):
             'position': 'Administrator',
             'phone_number': '+1234567890',
             'occupation': 'System Administrator',
-            'paid': True
+            'paid': True,
+            'preferences': {
+                'theme': 'dark',
+                'widget_settings': {
+                    'orthodox': True,
+                    'questions': True,
+                    'members': True
+                }
+            }
         },
         {
             'email': 'staff@example.com',
@@ -75,7 +83,15 @@ def create_test_users(db):
             'position': 'Staff Member',
             'phone_number': '+1234567891',
             'occupation': 'Support Staff',
-            'paid': True
+            'paid': True,
+            'preferences': {
+                'theme': 'light',
+                'widget_settings': {
+                    'orthodox': True,
+                    'questions': True,
+                    'members': False
+                }
+            }
         },
         {
             'email': 'user@example.com',
@@ -88,7 +104,15 @@ def create_test_users(db):
             'position': 'Member',
             'phone_number': '+1234567892',
             'occupation': 'Software Developer',
-            'paid': False
+            'paid': False,
+            'preferences': {
+                'theme': 'light',
+                'widget_settings': {
+                    'orthodox': False,
+                    'questions': True,
+                    'members': True
+                }
+            }
         }
     ]
 
@@ -113,7 +137,7 @@ def create_test_users(db):
 
             # Prepare Firestore user document
             user_doc = {
-                'uid': auth_user.uid,
+                'uid': auth_user.uid,  # Copy of document ID
                 'email': user_data['email'],
                 'first_name': user_data['first_name'],
                 'last_name': user_data['last_name'],
@@ -124,6 +148,7 @@ def create_test_users(db):
                 'phone_number': user_data['phone_number'],
                 'occupation': user_data['occupation'],
                 'paid': user_data['paid'],
+                'preferences': user_data['preferences'],
                 'date_joined': firestore.SERVER_TIMESTAMP,
                 'last_login': firestore.SERVER_TIMESTAMP
             }
@@ -146,7 +171,9 @@ def create_test_questions(db):
                 {'text': 'Go', 'votes': 0},
                 {'text': 'Java', 'votes': 0},
                 {'text': 'C++', 'votes': 0}
-            ]
+            ],
+            'voted_users': [],
+            'created_at': firestore.SERVER_TIMESTAMP
         },
         {
             'text': "Which web framework do you prefer?",
@@ -156,7 +183,9 @@ def create_test_questions(db):
                 {'text': 'Angular', 'votes': 0},
                 {'text': 'Svelte', 'votes': 0},
                 {'text': 'Next.js', 'votes': 0}
-            ]
+            ],
+            'voted_users': [],
+            'created_at': firestore.SERVER_TIMESTAMP
         },
         {
             'text': "What's your preferred database?",
@@ -166,23 +195,18 @@ def create_test_questions(db):
                 {'text': 'MongoDB', 'votes': 0},
                 {'text': 'SQLite', 'votes': 0},
                 {'text': 'Redis', 'votes': 0}
-            ]
+            ],
+            'voted_users': [],
+            'created_at': firestore.SERVER_TIMESTAMP
         }
     ]
 
     print("\nCreating test questions...")
     for question_data in questions:
         try:
-            question_doc = {
-                'text': question_data['text'],
-                'created_at': firestore.SERVER_TIMESTAMP,
-                'voted_users': [],
-                'choices': question_data['choices']
-            }
-            
             # Add question to Firestore
             question_ref = db.collection('questions').document()
-            question_ref.set(question_doc)
+            question_ref.set(question_data)
             print(f"Created question: {question_data['text']}")
             
         except Exception as e:
@@ -195,7 +219,7 @@ def create_test_contacts(db):
             'full_name': 'John Doe',
             'email': 'john.doe@example.com',
             'phone_number': '+1234567890',
-            'website': 'https://www.example.com',
+            'website': 'https://www.johndoe.com',
             'is_sponsor': True,
             'is_vendor': False
         },
@@ -203,8 +227,16 @@ def create_test_contacts(db):
             'full_name': 'Jane Smith',
             'email': 'jane.smith@example.com',
             'phone_number': '+1234567891',
-            'website': 'https://www.example.com',
+            'website': 'https://www.janesmith.com',
             'is_sponsor': False,
+            'is_vendor': True
+        },
+        {
+            'full_name': 'Bob Johnson',
+            'email': 'bob.johnson@example.com',
+            'phone_number': '+1234567892',
+            'website': 'https://www.bobjohnson.com',
+            'is_sponsor': True,
             'is_vendor': True
         }
     ]
@@ -212,18 +244,9 @@ def create_test_contacts(db):
     print("\nCreating test contacts...")
     for contact_data in contacts:   
         try:
-            contact_doc = {
-                'full_name': contact_data['full_name'],
-                'email': contact_data['email'],
-                'phone_number': contact_data['phone_number'],
-                'website': contact_data['website'],
-                'is_sponsor': contact_data['is_sponsor'],
-                'is_vendor': contact_data['is_vendor']
-            }
-            
             # Add contact to Firestore
             contact_ref = db.collection('contacts').document()
-            contact_ref.set(contact_doc)
+            contact_ref.set(contact_data)
             print(f"Created contact: {contact_data['full_name']}")
             
         except Exception as e:

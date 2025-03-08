@@ -282,6 +282,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
 	// Verify the token using Firebase Auth
 	token, err := auth.VerifyIDToken(ctx, idToken)
 	if err != nil {
@@ -292,12 +293,32 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 
 	// Get user claims to check if admin
 	claims := token.Claims
-	isAdmin, ok := claims["admin"].(bool)
-	if !ok || !isAdmin {
-		// Check if superuser in Firestore
-		email := claims["email"].(string)
-		userDoc, err := getUserByEmail(ctx, email)
-		if err != nil || !userDoc.IsSuperuser {
+	isAdmin, _ := claims["admin"].(bool)
+	email, ok := claims["email"].(string)
+	if !ok {
+		log.Printf("No email in token claims")
+		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+		return
+	}
+
+	// If not admin, check Firestore with retries
+	if !isAdmin {
+		maxRetries := 3
+		var userDoc *models.User
+		var err error
+
+		for i := 0; i < maxRetries; i++ {
+			userDoc, err = getUserByEmail(ctx, email)
+			if err == nil && userDoc != nil && userDoc.IsSuperuser {
+				break
+			}
+			if i < maxRetries-1 {
+				log.Printf("Retry %d: Waiting for user document to propagate...", i+1)
+				time.Sleep(time.Second) // Wait 1 second between retries
+			}
+		}
+
+		if err != nil || userDoc == nil || !userDoc.IsSuperuser {
 			log.Printf("User not authorized: %v", err)
 			http.Error(w, "Unauthorized access", http.StatusUnauthorized)
 			return
@@ -447,64 +468,21 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate verification link
+	// Generate password reset link (this will send the email automatically)
 	actionCodeSettings := &auth.ActionCodeSettings{
-		URL:             os.Getenv("FRONTEND_URL") + "/login", // Frontend URL for email verification
+		URL:             os.Getenv("FRONTEND_URL") + "/login",
 		HandleCodeInApp: true,
 	}
 
-	_, err = firebase.Auth.EmailVerificationLinkWithSettings(ctx, newUser.Email, actionCodeSettings)
+	_, err = firebase.Auth.PasswordResetLinkWithSettings(ctx, newUser.Email, actionCodeSettings)
 	if err != nil {
-		log.Printf("Error generating verification link: %v", err)
-		// Continue execution as user is created successfully
-	}
-
-	// Prepare email content with HTML-safe links
-	emailSubject := "Welcome to SELO - Account Creation"
-	verificationURL := os.Getenv("FRONTEND_URL") + "/verify-email"
-
-	emailBody := fmt.Sprintf(`
-Welcome to SELO!
-
-Your account has been created successfully. Here are your temporary credentials:
-
-Email: %s
-Temporary Password: %s
-
-To verify your email, please visit:
-%s
-
-After verifying your email, please log in at https://selo-admin.web.app and change your password immediately.
-
-Important Security Notice:
-- This is an automated message, please do not reply
-- Keep your credentials secure
-- Change your password upon first login
-- Never share your password with others
-
-If you did not request this account, please contact support immediately.
-
-Best regards,
-SELO Team
-
-This email was sent by SELO Admin System
-`, newUser.Email, tempPassword, verificationURL)
-
-	// Send welcome email
-	err = sendEmail(
-		os.Getenv("SMTP_FROM_EMAIL"),
-		newUser.Email,
-		emailSubject,
-		emailBody,
-	)
-	if err != nil {
-		log.Printf("Error sending welcome email: %v", err)
+		log.Printf("Error generating password reset link: %v", err)
 		// Don't return error as user is created successfully
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "User created successfully. Check email for verification link.",
+		"message": "User created successfully. Check email for password reset link.",
 		"uid":     authUser.UID,
 	})
 }

@@ -8,6 +8,12 @@ import {
   updateUserPreferences,
 } from "../services/api";
 import { auth } from "../services/firebase";
+import {
+  validateEmail,
+  validatePhone,
+  formatPhoneNumber,
+  getValidationError,
+} from "../utils/validation";
 
 interface WidgetSettings {
   orthodox: boolean;
@@ -41,6 +47,13 @@ const Settings: React.FC = () => {
     confirmPassword: "",
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [validationErrors, setValidationErrors] = useState<{
+    email: string | null;
+    phone: string | null;
+  }>({
+    email: null,
+    phone: null,
+  });
 
   useEffect(() => {
     const fetchMemberDetails = async () => {
@@ -193,10 +206,23 @@ const Settings: React.FC = () => {
       return;
     }
 
+    // Validate inputs
+    const emailError = getValidationError("email", userEmail);
+    const phoneError = getValidationError("phone", userPhone);
+
+    setValidationErrors({
+      email: emailError,
+      phone: phoneError,
+    });
+
+    if (emailError || phoneError) {
+      return;
+    }
+
     try {
       await updateMemberInfo(uid, {
         email: userEmail,
-        phone_number: userPhone,
+        phone_number: formatPhoneNumber(userPhone),
         occupation: userOccupation,
       });
       alert("Account information updated successfully!");
@@ -262,35 +288,65 @@ const Settings: React.FC = () => {
           <form onSubmit={handleUpdate}>
             {isEditing ? (
               <>
-                <p>
-                  Email:
+                <div className="form-group">
+                  <label>Email:</label>
                   <input
                     type="email"
                     value={userEmail}
-                    onChange={(e) => setUserEmail(e.target.value)}
+                    onChange={(e) => {
+                      setUserEmail(e.target.value);
+                      setValidationErrors({
+                        ...validationErrors,
+                        email: getValidationError("email", e.target.value),
+                      });
+                    }}
+                    className={validationErrors.email ? "error" : ""}
                     required
                   />
-                </p>
-                <p>
-                  Phone Number:
+                  {validationErrors.email && (
+                    <div className="error-message">
+                      {validationErrors.email}
+                    </div>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label>Phone Number:</label>
                   <input
                     type="tel"
                     value={userPhone}
-                    onChange={(e) => setUserPhone(e.target.value)}
+                    onChange={(e) => {
+                      setUserPhone(e.target.value);
+                      setValidationErrors({
+                        ...validationErrors,
+                        phone: getValidationError("phone", e.target.value),
+                      });
+                    }}
+                    className={validationErrors.phone ? "error" : ""}
                     required
                   />
-                </p>
-                <p>
-                  Occupation:
+                  {validationErrors.phone && (
+                    <div className="error-message">
+                      {validationErrors.phone}
+                    </div>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label>Occupation:</label>
                   <input
                     type="text"
                     value={userOccupation}
                     onChange={(e) => setUserOccupation(e.target.value)}
                     required
                   />
-                </p>
+                </div>
                 <div className="button-container">
-                  <button type="button" onClick={() => setIsEditing(false)}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setValidationErrors({ email: null, phone: null });
+                    }}
+                  >
                     Cancel
                   </button>
                   <button type="submit">Update Account Information</button>

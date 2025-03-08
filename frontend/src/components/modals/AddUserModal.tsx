@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import { createUser } from "../../services/api";
+import {
+  validateEmail,
+  validatePhone,
+  formatPhoneNumber,
+  getValidationError,
+} from "../../utils/validation";
 
 interface AddUserModalProps {
   show: boolean;
@@ -11,7 +17,6 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
   const [userData, setUserData] = useState({
     username: "",
     email: "",
-    password: "",
     first_name: "",
     last_name: "",
     position: "",
@@ -25,18 +30,59 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
     date_joined: new Date().toISOString(),
   });
 
+  const [validationErrors, setValidationErrors] = useState<{
+    email: string | null;
+    phone_number: string | null;
+  }>({
+    email: null,
+    phone_number: null,
+  });
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, type, checked, value } = e.target;
-    setUserData((prevData) => ({
-      ...prevData,
-      [name]: type === "checkbox" ? checked : value,
+    const newValue = type === "checkbox" ? checked : value;
+
+    setUserData((prev) => ({
+      ...prev,
+      [name]: newValue,
     }));
+
+    // Validate fields as they're typed
+    if (["email", "phone_number"].includes(name)) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [name]: getValidationError(name, value),
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate all fields before submission
+    const emailError = getValidationError("email", userData.email);
+    const phoneError = getValidationError(
+      "phone_number",
+      userData.phone_number
+    );
+
+    setValidationErrors({
+      email: emailError,
+      phone_number: phoneError,
+    });
+
+    if (emailError || phoneError) {
+      return;
+    }
+
     try {
-      await createUser(userData);
+      // Format phone number before sending
+      const formattedData = {
+        ...userData,
+        phone_number: formatPhoneNumber(userData.phone_number),
+      };
+
+      await createUser(formattedData);
       alert(
         "User created successfully! A password reset email has been sent to " +
           userData.email
@@ -45,7 +91,6 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
       setUserData({
         username: "",
         email: "",
-        password: "",
         first_name: "",
         last_name: "",
         position: "",
@@ -57,6 +102,10 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
         paid: false,
         last_login: new Date().toISOString(),
         date_joined: new Date().toISOString(),
+      });
+      setValidationErrors({
+        email: null,
+        phone_number: null,
       });
     } catch (error) {
       console.error("Error creating user:", error);
@@ -90,8 +139,12 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
               placeholder="Enter email"
               value={userData.email}
               onChange={handleChange}
+              isInvalid={!!validationErrors.email}
               required
             />
+            <Form.Control.Feedback type="invalid">
+              {validationErrors.email}
+            </Form.Control.Feedback>
           </Form.Group>
           <Form.Group controlId="formFirstName">
             <Form.Label>First Name</Form.Label>
@@ -128,12 +181,17 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
           <Form.Group controlId="formPhoneNumber">
             <Form.Label>Phone Number</Form.Label>
             <Form.Control
-              type="text"
+              type="tel"
               name="phone_number"
               placeholder="Enter phone number"
               value={userData.phone_number}
               onChange={handleChange}
+              isInvalid={!!validationErrors.phone_number}
+              required
             />
+            <Form.Control.Feedback type="invalid">
+              {validationErrors.phone_number}
+            </Form.Control.Feedback>
           </Form.Group>
           <Form.Group controlId="formOccupation">
             <Form.Label>Occupation</Form.Label>
@@ -174,6 +232,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
           </Form.Group>
           <div className="form-text text-muted mb-3">
             A password reset email will be sent to the user's email address.
+            They will need to click the link in the email to set their password.
           </div>
           <div className="modal-footer">
             <button className="admin-button" type="submit">

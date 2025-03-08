@@ -130,12 +130,16 @@ const AddQuestionModal: React.FC<AddQuestionModalProps> = ({
           </div>
 
           <div className="d-flex justify-content-end gap-2">
-            <Button variant="secondary" onClick={onHide}>
+            <button type="button" className="admin-button" onClick={onHide}>
               Cancel
-            </Button>
-            <Button variant="primary" type="submit" disabled={isSubmitting}>
+            </button>
+            <button
+              type="submit"
+              className="admin-button"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Adding..." : "Add Question"}
-            </Button>
+            </button>
           </div>
         </Form>
       </Modal.Body>
