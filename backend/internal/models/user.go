@@ -28,15 +28,17 @@ type WidgetSettings struct {
 // User represents the main user model, similar to Django's User model
 type User struct {
 	UID         string          `firestore:"uid" json:"uid"`
+	Username    string          `firestore:"username" json:"username"`
 	Email       string          `firestore:"email" json:"email"`
+	Password    string          `firestore:"password" json:"password,omitempty"`
 	FirstName   string          `firestore:"first_name" json:"first_name"`
 	LastName    string          `firestore:"last_name" json:"last_name"`
-	IsActive    bool            `firestore:"is_active" json:"is_active"`
-	IsStaff     bool            `firestore:"is_staff" json:"is_staff"`
-	IsSuperuser bool            `firestore:"is_superuser" json:"is_superuser"`
 	Position    string          `firestore:"position" json:"position"`
 	PhoneNumber string          `firestore:"phone_number" json:"phone_number"`
 	Occupation  string          `firestore:"occupation" json:"occupation"`
+	IsActive    bool            `firestore:"is_active" json:"is_active"`
+	IsStaff     bool            `firestore:"is_staff" json:"is_staff"`
+	IsSuperuser bool            `firestore:"is_superuser" json:"is_superuser"`
 	Paid        bool            `firestore:"paid" json:"paid"`
 	LastLogin   time.Time       `firestore:"last_login" json:"last_login"`
 	DateJoined  time.Time       `firestore:"date_joined" json:"date_joined"`

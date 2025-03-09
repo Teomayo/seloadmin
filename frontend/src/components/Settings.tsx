@@ -236,13 +236,6 @@ const Settings: React.FC = () => {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Debug log to check values
-    console.log("Password Data:", {
-      currentPassword: passwordData.currentPassword ? "exists" : "missing",
-      newPassword: passwordData.newPassword ? "exists" : "missing",
-      confirmPassword: passwordData.confirmPassword ? "exists" : "missing",
-    });
-
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert("New passwords do not match!");
       return;

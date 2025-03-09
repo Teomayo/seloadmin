@@ -113,6 +113,174 @@ def create_test_users(db):
                     'members': True
                 }
             }
+        },
+        {
+            'email': 'sarah.jones@example.com',
+            'password': 'sarah123',
+            'first_name': 'Sarah',
+            'last_name': 'Jones',
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+            'position': 'Member',
+            'phone_number': '+1234567893',
+            'occupation': 'Teacher',
+            'paid': True,
+            'preferences': {'theme': 'light'}
+        },
+        {
+            'email': 'michael.wong@example.com',
+            'password': 'michael123',
+            'first_name': 'Michael',
+            'last_name': 'Wong',
+            'is_active': True,
+            'is_staff': True,
+            'is_superuser': False,
+            'position': 'Content Manager',
+            'phone_number': '+1234567894',
+            'occupation': 'Content Writer',
+            'paid': True,
+            'preferences': {'theme': 'dark'}
+        },
+        {
+            'email': 'emma.brown@example.com',
+            'password': 'emma123',
+            'first_name': 'Emma',
+            'last_name': 'Brown',
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+            'position': 'Member',
+            'phone_number': '+1234567895',
+            'occupation': 'Graphic Designer',
+            'paid': False,
+            'preferences': {'theme': 'light'}
+        },
+        {
+            'email': 'david.miller@example.com',
+            'password': 'david123',
+            'first_name': 'David',
+            'last_name': 'Miller',
+            'is_active': True,
+            'is_staff': True,
+            'is_superuser': False,
+            'position': 'Event Coordinator',
+            'phone_number': '+1234567896',
+            'occupation': 'Event Planner',
+            'paid': True,
+            'preferences': {'theme': 'dark'}
+        },
+        {
+            'email': 'lisa.chen@example.com',
+            'password': 'lisa123',
+            'first_name': 'Lisa',
+            'last_name': 'Chen',
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+            'position': 'Member',
+            'phone_number': '+1234567897',
+            'occupation': 'Marketing Specialist',
+            'paid': True,
+            'preferences': {'theme': 'light'}
+        },
+        {
+            'email': 'james.wilson@example.com',
+            'password': 'james123',
+            'first_name': 'James',
+            'last_name': 'Wilson',
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+            'position': 'Member',
+            'phone_number': '+1234567898',
+            'occupation': 'Accountant',
+            'paid': False,
+            'preferences': {'theme': 'dark'}
+        },
+        {
+            'email': 'maria.rodriguez@example.com',
+            'password': 'maria123',
+            'first_name': 'Maria',
+            'last_name': 'Rodriguez',
+            'is_active': True,
+            'is_staff': True,
+            'is_superuser': False,
+            'position': 'Community Manager',
+            'phone_number': '+1234567899',
+            'occupation': 'Community Coordinator',
+            'paid': True,
+            'preferences': {'theme': 'light'}
+        },
+        {
+            'email': 'robert.kim@example.com',
+            'password': 'robert123',
+            'first_name': 'Robert',
+            'last_name': 'Kim',
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+            'position': 'Member',
+            'phone_number': '+1234567900',
+            'occupation': 'Student',
+            'paid': False,
+            'preferences': {'theme': 'dark'}
+        },
+        {
+            'email': 'jennifer.patel@example.com',
+            'password': 'jennifer123',
+            'first_name': 'Jennifer',
+            'last_name': 'Patel',
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+            'position': 'Member',
+            'phone_number': '+1234567901',
+            'occupation': 'Researcher',
+            'paid': True,
+            'preferences': {'theme': 'light'}
+        },
+        {
+            'email': 'william.taylor@example.com',
+            'password': 'william123',
+            'first_name': 'William',
+            'last_name': 'Taylor',
+            'is_active': True,
+            'is_staff': True,
+            'is_superuser': False,
+            'position': 'Technical Support',
+            'phone_number': '+1234567902',
+            'occupation': 'IT Specialist',
+            'paid': True,
+            'preferences': {'theme': 'dark'}
+        },
+        {
+            'email': 'patricia.garcia@example.com',
+            'password': 'patricia123',
+            'first_name': 'Patricia',
+            'last_name': 'Garcia',
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+            'position': 'Member',
+            'phone_number': '+1234567903',
+            'occupation': 'Artist',
+            'paid': False,
+            'preferences': {'theme': 'light'}
+        },
+        {
+            'email': 'thomas.nguyen@example.com',
+            'password': 'thomas123',
+            'first_name': 'Thomas',
+            'last_name': 'Nguyen',
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+            'position': 'Member',
+            'phone_number': '+1234567904',
+            'occupation': 'Engineer',
+            'paid': True,
+            'preferences': {'theme': 'dark'}
         }
     ]
 
@@ -221,7 +389,8 @@ def create_test_contacts(db):
             'phone_number': '+1234567890',
             'website': 'https://www.johndoe.com',
             'is_sponsor': True,
-            'is_vendor': False
+            'is_vendor': False,
+            'notes': 'Primary sponsor for annual gala'
         },
         {
             'full_name': 'Jane Smith',
@@ -229,7 +398,8 @@ def create_test_contacts(db):
             'phone_number': '+1234567891',
             'website': 'https://www.janesmith.com',
             'is_sponsor': False,
-            'is_vendor': True
+            'is_vendor': True,
+            'notes': 'Catering vendor for monthly events'
         },
         {
             'full_name': 'Bob Johnson',
@@ -237,7 +407,116 @@ def create_test_contacts(db):
             'phone_number': '+1234567892',
             'website': 'https://www.bobjohnson.com',
             'is_sponsor': True,
-            'is_vendor': True
+            'is_vendor': True,
+            'notes': 'Both sponsor and vendor for tech equipment'
+        },
+        {
+            'full_name': 'Sarah Williams',
+            'email': 'sarah.w@example.com',
+            'phone_number': '+1234567893',
+            'website': 'https://www.sarahwilliams.com',
+            'is_sponsor': True,
+            'is_vendor': False,
+            'notes': 'Major donor for education programs'
+        },
+        {
+            'full_name': 'Michael Brown',
+            'email': 'michael.b@example.com',
+            'phone_number': '+1234567894',
+            'website': 'https://www.michaelbrown.com',
+            'is_sponsor': False,
+            'is_vendor': True,
+            'notes': 'Audio/Visual equipment provider'
+        },
+        {
+            'full_name': 'Emily Davis',
+            'email': 'emily.d@example.com',
+            'phone_number': '+1234567895',
+            'website': 'https://www.emilydavis.com',
+            'is_sponsor': True,
+            'is_vendor': False,
+            'notes': 'Sponsors youth programs'
+        },
+        {
+            'full_name': 'David Wilson',
+            'email': 'david.w@example.com',
+            'phone_number': '+1234567896',
+            'website': 'https://www.davidwilson.com',
+            'is_sponsor': False,
+            'is_vendor': True,
+            'notes': 'Printing services provider'
+        },
+        {
+            'full_name': 'Lisa Anderson',
+            'email': 'lisa.a@example.com',
+            'phone_number': '+1234567897',
+            'website': 'https://www.lisaanderson.com',
+            'is_sponsor': True,
+            'is_vendor': True,
+            'notes': 'Provides venue space and sponsorship'
+        },
+        {
+            'full_name': 'James Taylor',
+            'email': 'james.t@example.com',
+            'phone_number': '+1234567898',
+            'website': 'https://www.jamestaylor.com',
+            'is_sponsor': True,
+            'is_vendor': False,
+            'notes': 'Corporate sponsor'
+        },
+        {
+            'full_name': 'Maria Garcia',
+            'email': 'maria.g@example.com',
+            'phone_number': '+1234567899',
+            'website': 'https://www.mariagarcia.com',
+            'is_sponsor': False,
+            'is_vendor': True,
+            'notes': 'Translation services provider'
+        },
+        {
+            'full_name': 'Robert Martinez',
+            'email': 'robert.m@example.com',
+            'phone_number': '+1234567900',
+            'website': 'https://www.robertmartinez.com',
+            'is_sponsor': True,
+            'is_vendor': False,
+            'notes': 'Community outreach sponsor'
+        },
+        {
+            'full_name': 'Jennifer Lee',
+            'email': 'jennifer.l@example.com',
+            'phone_number': '+1234567901',
+            'website': 'https://www.jenniferlee.com',
+            'is_sponsor': False,
+            'is_vendor': True,
+            'notes': 'Event planning services'
+        },
+        {
+            'full_name': 'William Chen',
+            'email': 'william.c@example.com',
+            'phone_number': '+1234567902',
+            'website': 'https://www.williamchen.com',
+            'is_sponsor': True,
+            'is_vendor': True,
+            'notes': 'Technology sponsor and IT services'
+        },
+        {
+            'full_name': 'Patricia Moore',
+            'email': 'patricia.m@example.com',
+            'phone_number': '+1234567903',
+            'website': 'https://www.patriciamoore.com',
+            'is_sponsor': True,
+            'is_vendor': False,
+            'notes': 'Arts program sponsor'
+        },
+        {
+            'full_name': 'Thomas Wright',
+            'email': 'thomas.w@example.com',
+            'phone_number': '+1234567904',
+            'website': 'https://www.thomaswright.com',
+            'is_sponsor': False,
+            'is_vendor': True,
+            'notes': 'Security services provider'
         }
     ]
 

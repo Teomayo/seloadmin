@@ -60,9 +60,23 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
 
     // Validate fields as they're typed
     if (["email", "phone_number"].includes(name)) {
+      const otherField = name === "email" ? "phone_number" : "email";
+      const otherValue =
+        (name === "email" ? userData.phone_number : userData.email) || "";
+
       setValidationErrors((prev) => ({
         ...prev,
-        [name]: getValidationError(name, value),
+        [name]: getValidationError(name, value, {
+          [otherField]: otherValue,
+        }),
+      }));
+
+      // Update other field's validation as well since they're interdependent
+      setValidationErrors((prev) => ({
+        ...prev,
+        [otherField]: getValidationError(otherField, otherValue, {
+          [name]: value,
+        }),
       }));
     }
   };
@@ -76,11 +90,16 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
     }
 
     // Validate all fields before submission
-    const emailError = getValidationError("email", userData.email || "");
-    const phoneError = getValidationError(
-      "phone_number",
-      userData.phone_number || ""
-    );
+    const emailValue = typeof userData.email === "string" ? userData.email : "";
+    const phoneValue =
+      typeof userData.phone_number === "string" ? userData.phone_number : "";
+
+    const emailError = getValidationError("email", emailValue, {
+      phone_number: phoneValue,
+    });
+    const phoneError = getValidationError("phone_number", phoneValue, {
+      email: emailValue,
+    });
 
     setValidationErrors({
       email: emailError,
@@ -92,12 +111,12 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
     }
 
     try {
-      // Format phone number before sending
+      // Format phone number before sending if it exists
       const formattedData = {
         ...userData,
         phone_number: userData.phone_number
           ? formatPhoneNumber(userData.phone_number)
-          : undefined,
+          : "",
       };
 
       setIsSubmitting(true);
@@ -155,7 +174,10 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
           {selectedUser && (
             <>
               <Form.Group controlId="formEmail">
-                <Form.Label>Email</Form.Label>
+                <Form.Label>
+                  Email{" "}
+                  {!userData.phone_number && "(Required when phone is empty)"}
+                </Form.Label>
                 <Form.Control
                   type="email"
                   name="email"
@@ -169,7 +191,10 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({
               </Form.Group>
 
               <Form.Group controlId="formPhoneNumber">
-                <Form.Label>Phone Number</Form.Label>
+                <Form.Label>
+                  Phone Number{" "}
+                  {!userData.email && "(Required when email is empty)"}
+                </Form.Label>
                 <Form.Control
                   type="tel"
                   name="phone_number"

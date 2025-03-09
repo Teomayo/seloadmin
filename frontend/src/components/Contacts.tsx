@@ -15,9 +15,16 @@ const Contacts: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<string>("full_name");
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768); // Track mobile viewport
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
   useEffect(() => {
     const fetchContacts = async () => {
       try {
+        setLoading(true);
         // Wait for Firebase Auth to initialize
         await new Promise((resolve) => {
           const unsubscribe = auth.onAuthStateChanged((user: any) => {
@@ -26,21 +33,29 @@ const Contacts: React.FC = () => {
           });
         });
 
-        const response = await getContacts();
-        setContacts(response);
+        // Only fetch from API without search term
+        const response = await getContacts(currentPage, pageSize, "");
+        if (response && response.contacts) {
+          setContacts(response.contacts);
+          setTotalPages(response.totalPages || 1);
+          setTotalCount(response.totalCount || 0);
+        } else {
+          setContacts([]);
+          setTotalPages(1);
+          setTotalCount(0);
+        }
       } catch (error) {
         console.error("Error fetching contacts:", error);
+        setContacts([]);
+        setTotalPages(1);
+        setTotalCount(0);
       } finally {
         setLoading(false);
       }
     };
 
-    const timer = setTimeout(() => {
-      fetchContacts();
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
+    fetchContacts();
+  }, [currentPage, pageSize]); // Remove searchTerm from dependencies
 
   useEffect(() => {
     const handleResize = () => {
@@ -51,20 +66,26 @@ const Contacts: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const filteredContacts = contacts.filter((contact) => {
+  const filteredContacts = (contacts || []).filter((contact) => {
     // First apply vendor/sponsor filters
     if (showVendorsOnly && !contact.is_vendor) return false;
     if (showSponsorsOnly && !contact.is_sponsor) return false;
 
-    // Then apply search term filter
-    return (
-      contact.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.website.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.is_sponsor.toString().includes(searchTerm.toLowerCase()) ||
-      contact.is_vendor.toString().includes(searchTerm.toLowerCase())
-    );
+    // Then apply search term filter if there is one
+    if (searchTerm.trim() !== "") {
+      const searchLower = searchTerm.toLowerCase().trim();
+      return (
+        contact.full_name.toLowerCase().includes(searchLower) ||
+        contact.email.toLowerCase().includes(searchLower) ||
+        contact.phone_number.toLowerCase().includes(searchLower) ||
+        contact.website.toLowerCase().includes(searchLower) ||
+        (contact.notes && contact.notes.toLowerCase().includes(searchLower)) ||
+        (contact.is_sponsor && "sponsor".includes(searchLower)) ||
+        (contact.is_vendor && "vendor".includes(searchLower))
+      );
+    }
+
+    return true;
   });
 
   // Sort the filtered contacts
@@ -86,7 +107,9 @@ const Contacts: React.FC = () => {
         : 1;
     }
 
-    const compareResult = String(aValue).localeCompare(String(bValue));
+    const compareResult = String(aValue || "").localeCompare(
+      String(bValue || "")
+    );
     return sortOrder === "asc" ? compareResult : -compareResult;
   });
 
@@ -105,6 +128,176 @@ const Contacts: React.FC = () => {
     setSortOrder(newSortOrder);
   };
 
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handlePageSizeChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const newSize = parseInt(event.target.value, 10);
+    setPageSize(newSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
+  const renderPaginationButtons = () => {
+    if (isMobile) {
+      return (
+        <>
+          <button
+            className="pagination-button"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Back
+          </button>
+          <span className="pagination-current">
+            {(currentPage - 1) * pageSize + 1}-
+            {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
+          </span>
+          <button
+            className="pagination-button"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </>
+      );
+    }
+
+    // Desktop pagination logic remains the same
+    const buttons = [];
+    const maxVisiblePages = 7;
+
+    let startPage = 1;
+    let endPage = totalPages;
+
+    if (totalPages > maxVisiblePages) {
+      const leftOffset = Math.floor(maxVisiblePages / 2);
+      const rightOffset = maxVisiblePages - leftOffset - 1;
+
+      if (currentPage <= leftOffset) {
+        // Near the start
+        endPage = maxVisiblePages - 1;
+        buttons.push(
+          <button
+            key="back"
+            className="pagination-button"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Back
+          </button>
+        );
+      } else if (currentPage >= totalPages - rightOffset) {
+        // Near the end
+        startPage = totalPages - maxVisiblePages + 2;
+        buttons.push(
+          <button
+            key="back"
+            className="pagination-button"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Back
+          </button>
+        );
+      } else {
+        // Middle
+        startPage = currentPage - leftOffset + 1;
+        endPage = currentPage + rightOffset - 1;
+        buttons.push(
+          <button
+            key="back"
+            className="pagination-button"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Back
+          </button>
+        );
+      }
+    }
+
+    // Add first page button
+    buttons.push(
+      <button
+        key={1}
+        className={`pagination-button ${currentPage === 1 ? "active" : ""}`}
+        onClick={() => handlePageChange(1)}
+      >
+        1
+      </button>
+    );
+
+    // Add ellipsis after first page if needed
+    if (startPage > 2) {
+      buttons.push(
+        <span key="ellipsis-1" className="pagination-ellipsis">
+          ...
+        </span>
+      );
+    }
+
+    // Add page buttons
+    for (
+      let i = Math.max(2, startPage);
+      i <= Math.min(endPage, totalPages - 1);
+      i++
+    ) {
+      buttons.push(
+        <button
+          key={i}
+          className={`pagination-button ${currentPage === i ? "active" : ""}`}
+          onClick={() => handlePageChange(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Add ellipsis before last page if needed
+    if (endPage < totalPages - 1) {
+      buttons.push(
+        <span key="ellipsis-2" className="pagination-ellipsis">
+          ...
+        </span>
+      );
+    }
+
+    // Add last page button if there is more than one page
+    if (totalPages > 1) {
+      buttons.push(
+        <button
+          key={totalPages}
+          className={`pagination-button ${
+            currentPage === totalPages ? "active" : ""
+          }`}
+          onClick={() => handlePageChange(totalPages)}
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    // Add Next button
+    if (totalPages > maxVisiblePages) {
+      buttons.push(
+        <button
+          key="next"
+          className="pagination-button"
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
+      );
+    }
+
+    return buttons;
+  };
+
   return (
     <div className="contacts-container">
       <h2>Contacts</h2>
@@ -113,7 +306,10 @@ const Contacts: React.FC = () => {
           type="text"
           placeholder="Search contacts..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1); // Reset to first page when searching
+          }}
           className="search-input"
         />
         <div className="toggle-filters">
@@ -139,6 +335,30 @@ const Contacts: React.FC = () => {
             />
             Sponsors
           </label>
+        </div>
+        <div className="pagination-controls">
+          <div className="pagination-wrapper">
+            {!isMobile && (
+              <span className="pagination-info">
+                {(currentPage - 1) * pageSize + 1}-
+                {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
+              </span>
+            )}
+            <div className="pagination-buttons">
+              {renderPaginationButtons()}
+            </div>
+          </div>
+          <div className="results-per-page">
+            <select
+              value={pageSize}
+              onChange={handlePageSizeChange}
+              className="page-size-select"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </div>
         </div>
       </div>
       {loading ? (
@@ -185,6 +405,7 @@ const Contacts: React.FC = () => {
                   </p>
                   <p>Sponsor: {contact.is_sponsor ? "Yes" : "No"}</p>
                   <p>Vendor: {contact.is_vendor ? "Yes" : "No"}</p>
+                  <p>Notes: {contact.notes || "No notes"}</p>
                 </div>
               )}
             </div>
@@ -243,6 +464,14 @@ const Contacts: React.FC = () => {
                     : "↓"
                   : ""}
               </th>
+              <th onClick={() => handleSort("notes")}>
+                Notes{" "}
+                {sortColumn === "notes"
+                  ? sortOrder === "asc"
+                    ? "↑"
+                    : "↓"
+                  : ""}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -268,6 +497,7 @@ const Contacts: React.FC = () => {
                 </td>
                 <td>{contact.is_sponsor ? "Yes" : "No"}</td>
                 <td>{contact.is_vendor ? "Yes" : "No"}</td>
+                <td>{contact.notes || "No notes"}</td>
               </tr>
             ))}
           </tbody>

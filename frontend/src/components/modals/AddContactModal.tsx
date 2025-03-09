@@ -23,6 +23,7 @@ const AddContactModal: React.FC<AddContactModalProps> = ({ show, onHide }) => {
     website: "",
     is_sponsor: false,
     is_vendor: false,
+    notes: "",
   });
 
   const [validationErrors, setValidationErrors] = useState<{
@@ -49,10 +50,32 @@ const AddContactModal: React.FC<AddContactModalProps> = ({ show, onHide }) => {
 
     // Validate fields as they're typed
     if (["email", "phone_number", "website"].includes(name)) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        [name]: getValidationError(name, value),
-      }));
+      if (name === "website") {
+        setValidationErrors((prev) => ({
+          ...prev,
+          [name]: getValidationError(name, value),
+        }));
+      } else {
+        // For email and phone, we need to check them together
+        const otherField = name === "email" ? "phone_number" : "email";
+        const otherValue =
+          name === "email" ? contact.phone_number : contact.email;
+
+        setValidationErrors((prev) => ({
+          ...prev,
+          [name]: getValidationError(name, value, {
+            [otherField]: otherValue,
+          }),
+        }));
+
+        // Update other field's validation as well since they're interdependent
+        setValidationErrors((prev) => ({
+          ...prev,
+          [otherField]: getValidationError(otherField, otherValue, {
+            [name]: value,
+          }),
+        }));
+      }
     }
   };
 
@@ -61,8 +84,16 @@ const AddContactModal: React.FC<AddContactModalProps> = ({ show, onHide }) => {
     setError(null);
 
     // Validate all fields before submission
-    const emailError = getValidationError("email", contact.email);
-    const phoneError = getValidationError("phone_number", contact.phone_number);
+    const emailError = getValidationError("email", contact.email, {
+      phone_number: contact.phone_number,
+    });
+    const phoneError = getValidationError(
+      "phone_number",
+      contact.phone_number,
+      {
+        email: contact.email,
+      }
+    );
     const websiteError = contact.website
       ? getValidationError("website", contact.website)
       : null;
@@ -80,10 +111,12 @@ const AddContactModal: React.FC<AddContactModalProps> = ({ show, onHide }) => {
     setIsSubmitting(true);
 
     try {
-      // Format phone number before sending
+      // Format phone number before sending if it exists
       const formattedContact = {
         ...contact,
-        phone_number: formatPhoneNumber(contact.phone_number),
+        phone_number: contact.phone_number
+          ? formatPhoneNumber(contact.phone_number)
+          : "",
       };
 
       await createContact(formattedContact);
@@ -96,6 +129,7 @@ const AddContactModal: React.FC<AddContactModalProps> = ({ show, onHide }) => {
         website: "",
         is_sponsor: false,
         is_vendor: false,
+        notes: "",
       });
       setValidationErrors({
         email: null,
@@ -130,14 +164,15 @@ const AddContactModal: React.FC<AddContactModalProps> = ({ show, onHide }) => {
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Label>Email</Form.Label>
+            <Form.Label>
+              Email {!contact.phone_number && "(Required when phone is empty)"}
+            </Form.Label>
             <Form.Control
               type="email"
               name="email"
               value={contact.email}
               onChange={handleChange}
               isInvalid={!!validationErrors.email}
-              required
             />
             <Form.Control.Feedback type="invalid">
               {validationErrors.email}
@@ -145,18 +180,31 @@ const AddContactModal: React.FC<AddContactModalProps> = ({ show, onHide }) => {
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Label>Phone Number</Form.Label>
+            <Form.Label>
+              Phone Number {!contact.email && "(Required when email is empty)"}
+            </Form.Label>
             <Form.Control
               type="tel"
               name="phone_number"
               value={contact.phone_number}
               onChange={handleChange}
               isInvalid={!!validationErrors.phone_number}
-              required
             />
             <Form.Control.Feedback type="invalid">
               {validationErrors.phone_number}
             </Form.Control.Feedback>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Notes</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              name="notes"
+              value={contact.notes}
+              onChange={handleChange}
+              placeholder="Add any additional notes here..."
+            />
           </Form.Group>
 
           <Form.Group className="mb-3">

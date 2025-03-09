@@ -439,13 +439,10 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate a secure temporary password
-	tempPassword := generateTempPassword(16)
-
-	// Create user in Firebase Auth
+	// Create user in Firebase Auth with the provided password
 	params := (&auth.UserToCreate{}).
 		Email(newUser.Email).
-		Password(tempPassword).
+		Password(newUser.Password). // Use the password from the request
 		DisplayName(newUser.FirstName + " " + newUser.LastName)
 
 	authUser, err := firebase.Auth.CreateUser(ctx, params)
@@ -458,6 +455,19 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	// Add UID to user data
 	newUser.UID = authUser.UID
 
+	// Remove password from Firestore data
+	newUser.Password = ""
+
+	// Set default preferences
+	newUser.Preferences = models.UserPreferences{
+		Theme: "light",
+		WidgetSettings: models.WidgetSettings{
+			Orthodox:  true,
+			Questions: true,
+			Members:   true,
+		},
+	}
+
 	// Create user document in Firestore
 	_, err = firebase.FirestoreClient.Collection("users").Doc(authUser.UID).Set(ctx, newUser)
 	if err != nil {
@@ -468,21 +478,9 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate password reset link (this will send the email automatically)
-	actionCodeSettings := &auth.ActionCodeSettings{
-		URL:             os.Getenv("FRONTEND_URL") + "/login",
-		HandleCodeInApp: true,
-	}
-
-	_, err = firebase.Auth.PasswordResetLinkWithSettings(ctx, newUser.Email, actionCodeSettings)
-	if err != nil {
-		log.Printf("Error generating password reset link: %v", err)
-		// Don't return error as user is created successfully
-	}
-
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "User created successfully. Check email for password reset link.",
+		"message": "User created successfully",
 		"uid":     authUser.UID,
 	})
 }

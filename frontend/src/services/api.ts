@@ -1,5 +1,11 @@
 import axios from "axios";
-import { User, Contact, Question, UserPreferences } from "../interfaces";
+import {
+  User,
+  Contact,
+  Question,
+  UserPreferences,
+  Member,
+} from "../interfaces";
 import { auth } from "./firebase"; // Import auth directly
 import {
   signInWithEmailAndPassword,
@@ -48,10 +54,6 @@ if (process.env.REACT_APP_ENV_MODE === "development") {
 if (!API_URL || !BASE_URL) {
   console.warn("Environment variables not properly loaded!");
 }
-
-console.log("Environment Mode:", process.env.REACT_APP_ENV_MODE);
-console.log("API_URL:", API_URL);
-console.log("BASE_URL:", BASE_URL);
 
 // Create axios instance with default config
 const api = axios.create({
@@ -127,7 +129,6 @@ export const login = async (email: string, password: string) => {
     // Fetch member info which includes preferences
     try {
       const memberDetails = await getMemberInfo(user.uid);
-      console.log(memberDetails);
       if (memberDetails[0].is_superuser) {
         localStorage.setItem("userRole", "superuser");
       } else if (memberDetails[0].is_staff) {
@@ -145,7 +146,6 @@ export const login = async (email: string, password: string) => {
 
         // Set widget settings
         if (widget_settings) {
-          console.log("Setting widget settings from login:", widget_settings);
           localStorage.setItem(
             "widgetSettings",
             JSON.stringify(widget_settings)
@@ -225,9 +225,60 @@ export const getMembersCount = async () => {
   return response.data.count;
 };
 
-export const getMembers = async () => {
-  const response = await api.get(`${API_URL}members`);
-  return response.data;
+export interface PaginatedMembersResponse {
+  members: Member[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+}
+
+export const getMembers = async (
+  page: number = 1,
+  pageSize: number = 10,
+  searchTerm: string = "",
+  sortColumn: string = "first_name",
+  sortOrder: "asc" | "desc" = "asc"
+): Promise<PaginatedMembersResponse> => {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) {
+    throw new Error("No ID token available");
+  }
+
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortColumn,
+    sortOrder,
+    ...(searchTerm && { searchTerm }),
+  });
+
+  const response = await fetch(`${API_URL}members?${queryParams.toString()}`, {
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    console.error("API Error:", response.status, response.statusText);
+    throw new Error("Failed to fetch members");
+  }
+
+  const members = await response.json();
+  // Transform the array response into the paginated format
+  const totalCount = members.length;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize;
+  const paginatedMembers = members.slice(start, end);
+
+  return {
+    members: paginatedMembers,
+    totalCount,
+    totalPages,
+    currentPage: page,
+    pageSize,
+  };
 };
 
 export const getMemberInfo = async (uid: string) => {
@@ -273,11 +324,6 @@ export const updatePassword = async (
     if (!user) {
       throw new Error("No authenticated user");
     }
-
-    // Debug log to check payload
-    console.log("Password update payload:", {
-      newPassword: passwordData.newPassword ? "exists" : "missing",
-    });
 
     const token = await user.getIdToken(true);
 
@@ -458,8 +504,29 @@ export const deleteUser = async (uid: string) => {
   }
 };
 
-export const getContacts = async (): Promise<Contact[]> => {
-  const response = await api.get(`${API_URL}contacts`);
+interface PaginatedContactsResponse {
+  contacts: Contact[];
+  totalCount: number;
+  currentPage: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export const getContacts = async (
+  page: number = 1,
+  pageSize: number = 10,
+  searchTerm: string = ""
+): Promise<PaginatedContactsResponse> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+
+  if (searchTerm) {
+    params.append("search", searchTerm);
+  }
+
+  const response = await api.get(`${API_URL}contacts?${params.toString()}`);
   return response.data;
 };
 

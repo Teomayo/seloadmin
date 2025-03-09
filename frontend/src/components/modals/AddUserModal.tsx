@@ -17,6 +17,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
   const [userData, setUserData] = useState({
     username: "",
     email: "",
+    password: "",
     first_name: "",
     last_name: "",
     position: "",
@@ -33,9 +34,11 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
   const [validationErrors, setValidationErrors] = useState<{
     email: string | null;
     phone_number: string | null;
+    password: string | null;
   }>({
     email: null,
     phone_number: null,
+    password: null,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,9 +52,23 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
 
     // Validate fields as they're typed
     if (["email", "phone_number"].includes(name)) {
+      const otherField = name === "email" ? "phone_number" : "email";
+      const otherValue =
+        name === "email" ? userData.phone_number : userData.email;
+
       setValidationErrors((prev) => ({
         ...prev,
-        [name]: getValidationError(name, value),
+        [name]: getValidationError(name, value, {
+          [otherField]: otherValue,
+        }),
+      }));
+
+      // Update other field's validation as well since they're interdependent
+      setValidationErrors((prev) => ({
+        ...prev,
+        [otherField]: getValidationError(otherField, otherValue, {
+          [name]: value,
+        }),
       }));
     }
   };
@@ -60,37 +77,49 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
     e.preventDefault();
 
     // Validate all fields before submission
-    const emailError = getValidationError("email", userData.email);
+    const emailError = getValidationError("email", userData.email, {
+      phone_number: userData.phone_number,
+    });
     const phoneError = getValidationError(
       "phone_number",
-      userData.phone_number
+      userData.phone_number,
+      {
+        email: userData.email,
+      }
     );
+
+    // Add password validation
+    const passwordError =
+      userData.password.length < 8
+        ? "Password must be at least 8 characters long"
+        : null;
 
     setValidationErrors({
       email: emailError,
       phone_number: phoneError,
+      password: passwordError,
     });
 
-    if (emailError || phoneError) {
+    if (emailError || phoneError || passwordError) {
       return;
     }
 
     try {
-      // Format phone number before sending
+      // Format phone number before sending if it exists
       const formattedData = {
         ...userData,
-        phone_number: formatPhoneNumber(userData.phone_number),
+        phone_number: userData.phone_number
+          ? formatPhoneNumber(userData.phone_number)
+          : "",
       };
 
       await createUser(formattedData);
-      alert(
-        "User created successfully! A password reset email has been sent to " +
-          userData.email
-      );
+      alert("User created successfully!");
       onHide();
       setUserData({
         username: "",
         email: "",
+        password: "",
         first_name: "",
         last_name: "",
         position: "",
@@ -106,6 +135,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
       setValidationErrors({
         email: null,
         phone_number: null,
+        password: null,
       });
     } catch (error) {
       console.error("Error creating user:", error);
@@ -131,8 +161,25 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
               required
             />
           </Form.Group>
+          <Form.Group controlId="formPassword">
+            <Form.Label>Password</Form.Label>
+            <Form.Control
+              type="password"
+              name="password"
+              placeholder="Enter password"
+              value={userData.password}
+              onChange={handleChange}
+              required
+              isInvalid={!!validationErrors.password}
+            />
+            <Form.Control.Feedback type="invalid">
+              {validationErrors.password}
+            </Form.Control.Feedback>
+          </Form.Group>
           <Form.Group controlId="formEmail">
-            <Form.Label>Email</Form.Label>
+            <Form.Label>
+              Email {!userData.phone_number && "(Required when phone is empty)"}
+            </Form.Label>
             <Form.Control
               type="email"
               name="email"
@@ -140,7 +187,6 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
               value={userData.email}
               onChange={handleChange}
               isInvalid={!!validationErrors.email}
-              required
             />
             <Form.Control.Feedback type="invalid">
               {validationErrors.email}
@@ -179,7 +225,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
             />
           </Form.Group>
           <Form.Group controlId="formPhoneNumber">
-            <Form.Label>Phone Number</Form.Label>
+            <Form.Label>
+              Phone Number {!userData.email && "(Required when email is empty)"}
+            </Form.Label>
             <Form.Control
               type="tel"
               name="phone_number"
@@ -187,7 +235,6 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
               value={userData.phone_number}
               onChange={handleChange}
               isInvalid={!!validationErrors.phone_number}
-              required
             />
             <Form.Control.Feedback type="invalid">
               {validationErrors.phone_number}
@@ -230,10 +277,6 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ show, onHide }) => {
               onChange={handleChange}
             />
           </Form.Group>
-          <div className="form-text text-muted mb-3">
-            A password reset email will be sent to the user's email address.
-            They will need to click the link in the email to set their password.
-          </div>
           <div className="modal-footer">
             <button className="admin-button" type="submit">
               Create User

@@ -67,7 +67,7 @@ const AdminPanel: React.FC = () => {
   const fetchContacts = async () => {
     try {
       const data = await getContacts();
-      setContacts(data);
+      setContacts(data.contacts); // Access the contacts array from the paginated response
     } catch (error) {
       console.error("Error fetching contacts:", error);
       setError("Failed to load contacts.");

@@ -8,6 +8,7 @@ type Contact struct {
 	Website     string `json:"website" firestore:"website"`
 	IsSponsor   bool   `json:"is_sponsor" firestore:"is_sponsor"`
 	IsVendor    bool   `json:"is_vendor" firestore:"is_vendor"`
+	Notes       string `json:"notes" firestore:"notes"`
 }
 
 type ContactResponse struct {
@@ -18,4 +19,5 @@ type ContactResponse struct {
 	Website     string `json:"website"`
 	IsSponsor   bool   `json:"is_sponsor"`
 	IsVendor    bool   `json:"is_vendor"`
+	Notes       string `json:"notes"`
 }

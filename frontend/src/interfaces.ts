@@ -36,6 +36,7 @@ interface Contact {
   website: string;
   is_sponsor: boolean;
   is_vendor: boolean;
+  notes: string;
 }
 
 interface Question {

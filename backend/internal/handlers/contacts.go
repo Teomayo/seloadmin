@@ -3,44 +3,78 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"selo/internal/firebase"
 	"selo/internal/models"
+	"strconv"
+	"strings"
 
+	"cloud.google.com/go/firestore"
 	"github.com/gorilla/mux"
-	"google.golang.org/api/iterator"
 )
 
 func GetContacts(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+	// Parse pagination parameters
+	pageSize := 10 // Default page size
+	page := 1      // Default page number
 
-	// Get reference to contacts collection and create iterator
-	iter := firebase.FirestoreClient.Collection("contacts").Documents(ctx)
-	defer iter.Stop()
-
-	var response []models.ContactResponse
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
+	if pageSizeStr := r.URL.Query().Get("pageSize"); pageSizeStr != "" {
+		if size, err := strconv.Atoi(pageSizeStr); err == nil && size > 0 {
+			pageSize = size
 		}
-		if err != nil {
-			log.Printf("Error iterating contacts: %v", err)
-			http.Error(w, "Error retrieving contacts", http.StatusInternalServerError)
-			return
-		}
+	}
 
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	// Get search term if any
+	searchTerm := r.URL.Query().Get("search")
+
+	// Create base query
+	collRef := firebase.FirestoreClient.Collection("contacts")
+	var iter *firestore.DocumentIterator
+
+	// Apply search if provided
+	if searchTerm != "" {
+		// Convert search term to lowercase for case-insensitive search
+		searchTerm = strings.ToLower(searchTerm)
+		iter = collRef.Where("search_terms", "array-contains", searchTerm).Documents(r.Context())
+	} else {
+		iter = collRef.Documents(r.Context())
+	}
+
+	// Get all documents
+	docs, err := iter.GetAll()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error getting contacts: %v", err), http.StatusInternalServerError)
+		return
+	}
+	total := len(docs)
+
+	// Apply pagination
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+
+	// Convert to response objects
+	var contacts []models.ContactResponse
+	for i := start; i < end; i++ {
+		doc := docs[i]
 		var contact models.Contact
 		if err := doc.DataTo(&contact); err != nil {
-			log.Printf("Error parsing contact data: %v", err)
-			continue
+			http.Error(w, fmt.Sprintf("Error converting contact: %v", err), http.StatusInternalServerError)
+			return
 		}
-
-		// Set the document ID
 		contact.ID = doc.Ref.ID
-
-		response = append(response, models.ContactResponse{
+		contacts = append(contacts, models.ContactResponse{
 			ID:          contact.ID,
 			FullName:    contact.FullName,
 			Email:       contact.Email,
@@ -48,7 +82,23 @@ func GetContacts(w http.ResponseWriter, r *http.Request) {
 			Website:     contact.Website,
 			IsSponsor:   contact.IsSponsor,
 			IsVendor:    contact.IsVendor,
+			Notes:       contact.Notes,
 		})
+	}
+
+	// Create pagination response
+	response := struct {
+		Contacts    []models.ContactResponse `json:"contacts"`
+		TotalCount  int                      `json:"totalCount"`
+		CurrentPage int                      `json:"currentPage"`
+		PageSize    int                      `json:"pageSize"`
+		TotalPages  int                      `json:"totalPages"`
+	}{
+		Contacts:    contacts,
+		TotalCount:  total,
+		CurrentPage: page,
+		PageSize:    pageSize,
+		TotalPages:  int(math.Ceil(float64(total) / float64(pageSize))),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
